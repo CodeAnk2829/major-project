@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  name             String
+  email            String
+  password         String
+  role             Role              @default(STUDENT)
+  complaints       Complaint[]
+  complaintDetails ComplaintDetail[]
+  notifications    Notification[]
+  upvote           upvote?
+  createdAt        DateTime          @default(now())
+}
+
+model Tag {
+  id         Int                 @id @default(1)
+  tagName    String
+  complaints ComplaintCategory[]
+}
+
+model Complaint {
+  id               String              @id @default(uuid())
+  title            String
+  description      String
+  access           String              @default("PUBLIC")
+  complaintDetails ComplaintDetail?
+  feedbacks        Feedback[]
+  notification     Notification[]
+  tags             ComplaintCategory[]
+  userId           Int
+  user             User                @relation(fields: [userId], references: [id])
+  status           Status              @default(UNRESOLVED)
+  attachments      Attachment[]
+  createdAt        DateTime            @default(now())
+  upvotes          upvote[]
+}
+
+model Attachment {
+  id          String    @id @default(uuid())
+  imageUrl    String
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+}
+
+model ComplaintCategory {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaints  Complaint @relation(fields: [complaintId], references: [id])
+  tagId       Int
+  tags        Tag       @relation(fields: [tagId], references: [id])
+
+  @@unique([complaintId, tagId])
+}
+
+model ComplaintDetail {
+  id          String    @id @default(uuid())
+  complaintId String    @unique
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  assignedTo  Int
+  user        User      @relation(fields: [assignedTo], references: [id])
+  actionTaken Boolean   @default(false)
+  resolvedAt  DateTime  @updatedAt
+}
+
+model Feedback {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  rating      Float
+  comments    String
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  message     String
+  sentAt      DateTime
+}
+
+model upvote {
+  id          String    @id @default(uuid())
+  userId      Int       @unique
+  user        User      @relation(fields: [userId], references: [id])
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  @@unique([userId, complaintId])
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  ISSUE_INCHARGE
+  RESOLVER
+  ADMIN
+}
+
+enum Status {
+  RESOLVED
+  PENDING
+  UNRESOLVED
+}
