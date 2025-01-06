@@ -13,23 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id               Int               @id @default(autoincrement())
-  name             String
-  email            String
-  password         String
-  role             Role              @default(STUDENT)
-  complaints       Complaint[]
-  complaintDetails ComplaintDetail[]
-  notifications    Notification[]
-  upvote           upvote?
-  createdAt        DateTime          @default(now())
-}
-
-model Tag {
-  id         Int                 @id @default(1)
-  tagName    String
-  complaints ComplaintCategory[]
+model Attachment {
+  id          String    @id @default(uuid())
+  imageUrl    String
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
 }
 
 model Complaint {
@@ -46,14 +34,7 @@ model Complaint {
   status           Status              @default(UNRESOLVED)
   attachments      Attachment[]
   createdAt        DateTime            @default(now())
-  upvotes          upvote[]
-}
-
-model Attachment {
-  id          String    @id @default(uuid())
-  imageUrl    String
-  complaintId String
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  upvotes          Upvote[]
 }
 
 model ComplaintCategory {
@@ -84,6 +65,17 @@ model Feedback {
   comments    String
 }
 
+model Hostel {
+  id           String @id @default(uuid())
+  hostelNumber Int
+  block        String
+  inchargeId   Int    @unique
+  incharge     User   @relation(fields: [inchargeId], references: [id])
+  rank         Int    @default(1)
+
+  @@unique([hostelNumber, inchargeId])
+}
+
 model Notification {
   id          String    @id @default(uuid())
   userId      Int
@@ -94,7 +86,35 @@ model Notification {
   sentAt      DateTime
 }
 
-model upvote {
+model Resolver {
+  id          String  @id @default(uuid())
+  name        String
+  email       String?
+  phoneNumber String
+  occupation  String
+}
+
+model Tag {
+  id         Int                 @id @default(1)
+  tagName    String
+  complaints ComplaintCategory[]
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  name             String
+  email            String
+  password         String
+  role             Role              @default(COMPLAINER)
+  complaints       Complaint[]
+  complaintDetails ComplaintDetail[]
+  Hostel           Hostel?
+  notifications    Notification[]
+  upvote           Upvote?
+  createdAt        DateTime          @default(now())
+}
+
+model Upvote {
   id          String    @id @default(uuid())
   userId      Int       @unique
   user        User      @relation(fields: [userId], references: [id])
@@ -105,10 +125,7 @@ model upvote {
 }
 
 enum Role {
-  STUDENT
-  FACULTY
-  ISSUE_INCHARGE
-  RESOLVER
+  COMPLAINER
   ADMIN
 }
 
