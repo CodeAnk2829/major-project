@@ -103,9 +103,9 @@ model Tag {
 model User {
   id               Int               @id @default(autoincrement())
   name             String
-  email            String
+  email            String            @unique
   password         String
-  role             Role              @default(COMPLAINER)
+  role             Role              @default(STUDENT)
   complaints       Complaint[]
   complaintDetails ComplaintDetail[]
   Hostel           Hostel?
@@ -125,7 +125,10 @@ model Upvote {
 }
 
 enum Role {
-  COMPLAINER
+  STUDENT
+  FACULTY
+  ISSUE_INCHARGE
+  RESOLVER
   ADMIN
 }
 

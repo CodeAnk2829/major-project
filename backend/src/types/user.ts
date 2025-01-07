@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 enum Role {
-    COMPLAINER = "COMPLAINER",
     ADMIN = "ADMIN",
+    FACULTY = "FACULTY",
+    ISSUE_INCHARGE = "ISSUE_INCHARGE",
+    RESOLVER = "RESOLVER",
+    STUDENT = "STUDENT",
 }
 
 export const SignupSchema = z.object({

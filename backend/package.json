@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "tsc -b && node dist/index.js",
-    "dev": "tsc -b && node dist/index.js",
-    "seed": "tsc -b && node prisma/seed.js"
+    "build": "tsc -b",
+    "start": "tsc -b && node dist/src/index.js",
+    "dev": "tsc -b && node dist/src/index.js"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +28,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "prisma": "^6.1.0"
+    "prisma": "^6.1.0",
+    "ts-node": "^10.9.2"
   }
 }
