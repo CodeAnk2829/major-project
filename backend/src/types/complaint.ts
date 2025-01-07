@@ -10,6 +10,6 @@ export const CreateComplaintSchema = z.object({
     description: z.string().min(3),
     access: z.nativeEnum(Access),
     location: z.string().min(3),
-    tags: z.array(z.string()),
+    tags: z.array(z.number()),
     attachments: z.array(z.string())
 });
