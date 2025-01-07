@@ -7,38 +7,37 @@ import {
   TextInput,
 } from "flowbite-react";
 import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
+import { signInFailure, signInStart, signInSuccess } from "../redux/user/userSlice";
 
 function SignIn() {
-    const [formData, setFormData] = useState({
-        email: "",
-        password: "",
-        role: "STUDENT", // Default role
-      });
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    role: "STUDENT", // Default role
+  });
+  const { loading, error: errorMessage } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
-  
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
-      return setErrorMessage("Please fill in all fields");
+      return dispatch(signInFailure('Please fill all the fields'));
     }
 
     try {
-      setLoading(true);
-      setErrorMessage(null);
+      dispatch(signInStart());
       const res = await fetch("http://localhost:3000/api/v1/user/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-        // credentials: "include",
       });
 
       const data = await res.json();
@@ -46,18 +45,14 @@ function SignIn() {
       localStorage.setItem("token", data.token);
 
       if (data.ok === false) {
-        setLoading(false);
-        return setErrorMessage(data.error);
+        dispatch(signInFailure(data.error));
       }
-
-      setLoading(false);
       if (res.ok) {
-        navigate('/');
+        dispatch(signInSuccess(data));
+        navigate("/");
       }
-
     } catch (error: any) {
-      setErrorMessage(error.message);
-      setLoading(false);
+      dispatch(signInFailure(error.message));
     }
   };
 
@@ -179,7 +174,9 @@ function SignIn() {
             </Button>
 
             {/* Sign Up Link */}
-            <p className="text-center text-sm mt-4"> <span>Don't have an account?     </span>
+            <p className="text-center text-sm mt-4">
+              {" "}
+              <span>Don't have an account? </span>
               <Link to="/sign-up" className="text-blue-500">
                 Sign Up
               </Link>
