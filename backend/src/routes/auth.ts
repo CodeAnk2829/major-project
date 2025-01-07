@@ -82,7 +82,7 @@ router.post("/signup", async (req, res) => {
                 email: parseData.data.email,
                 password: password,
                 name: parseData.data.name,
-                role: parseData.data.role as "STUDENT" | "FACULTY" | "ADMIN" | "ISSUE_INCHARGE" | "RESOLVER"
+                role: parseData.data.role as "COMPLAINER" | "ADMIN"
             }
         });
 
