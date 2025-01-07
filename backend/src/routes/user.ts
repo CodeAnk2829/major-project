@@ -75,6 +75,17 @@ router.post("/auth/signup", async (req, res) => {
             throw new Error("Invalid Inputs");
         }
 
+        // check if user exists
+        const isUserExisted = await prisma.user.findFirst({
+            where: {
+                email: parseData.data.email
+            }
+        });
+
+        if(isUserExisted) {
+            throw new Error("User already exists");
+        }
+
         const password = bcrypt.hashSync(parseData.data.password, 10);
 
         // store the user's information in the database
@@ -83,7 +94,7 @@ router.post("/auth/signup", async (req, res) => {
                 email: parseData.data.email,
                 password: password,
                 name: parseData.data.name,
-                role: parseData.data.role as "ADMIN" | "FACULTY" | "ISSUE_INCHARGE" | "RESOLVER" | "STUDENT"
+                role: parseData.data.role as "ADMIN" | "FACULTY" | "STUDENT"
             }
         });
 

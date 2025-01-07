@@ -22,29 +22,29 @@ router.post("/create", async (req, res) => {
         // search for a particular tag which is important such as 'Hostel' out of all tags
         const mainTag = parseData.data.tags.find((tag) => tag === "Hostel");
 
-        switch(mainTag) {
-            case "Hostel":
-                // find the least ranked incharge of the hostel of the given location
-                const incharge = await prisma.hostel.findFirst({
-                    where: {
-                        hostelNumber: parseInt(hostelNumber),
-                        block: hostelBlock
-                    },
-                    orderBy: {
-                        rank: "desc"
-                    }
-                });
+        // switch(mainTag) {
+        //     case "Hostel":
+        //         // find the least ranked incharge of the hostel of the given location
+        //         const incharge = await prisma.hostel.findFirst({
+        //             where: {
+        //                 hostelNumber: parseInt(hostelNumber),
+        //                 block: hostelBlock
+        //             },
+        //             orderBy: {
+        //                 rank: "desc"
+        //             }
+        //         });
 
-                if(!incharge) {
-                    throw new Error("Could not find the incharge of the hostel");
-                }
+        //         if(!incharge) {
+        //             throw new Error("Could not find the incharge of the hostel");
+        //         }
 
-                console.log(incharge);
-                break;
+        //         console.log(incharge);
+        //         break;
 
-            default:
-                throw new Error("Invalid tag");
-        }
+        //     default:
+        //         throw new Error("Invalid tag");
+        // }
 
         res.status(201).json({
             ok: true,

@@ -65,15 +65,26 @@ model Feedback {
   comments    String
 }
 
-model Hostel {
-  id           String @id @default(uuid())
-  hostelNumber Int
-  block        String
-  inchargeId   Int    @unique
-  incharge     User   @relation(fields: [inchargeId], references: [id])
-  rank         Int    @default(1)
+model IssueIncharge {
+  id          String   @id @default(uuid())
+  inchargeId  Int      @unique
+  incharge    User     @relation(fields: [inchargeId], references: [id])
+  locationId  Int
+  location    Location @relation(fields: [locationId], references: [id])
+  designation String
+  rank        Int      @default(1)
 
-  @@unique([hostelNumber, inchargeId])
+  @@unique([locationId, designation])
+}
+
+model Location {
+  id            Int             @id @default(autoincrement())
+  location      String
+  locationName  String
+  locationBlock String
+  IssueIncharge IssueIncharge[]
+
+  @@unique([locationName, locationBlock])
 }
 
 model Notification {
@@ -95,7 +106,7 @@ model Resolver {
 }
 
 model Tag {
-  id         Int                 @id @default(1)
+  id         Int                 @id @default(autoincrement())
   tagName    String
   complaints ComplaintCategory[]
 }
@@ -108,7 +119,7 @@ model User {
   role             Role              @default(STUDENT)
   complaints       Complaint[]
   complaintDetails ComplaintDetail[]
-  Hostel           Hostel?
+  issueIncharge    IssueIncharge?
   notifications    Notification[]
   upvote           Upvote?
   createdAt        DateTime          @default(now())
