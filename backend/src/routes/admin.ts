@@ -9,7 +9,7 @@ const router = Router();
 
 router.post("/assign/incharge", async (req, res) => {
     try {
-        const body = req.body; // { name: String, email: String, password: String, role: String, location: String, designation: String }
+        const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, designation: String, rank: Number }
         const parseData = AssignmentSchema.safeParse(body);
 
         if(!parseData.success) {
@@ -31,28 +31,9 @@ router.post("/assign/incharge", async (req, res) => {
         const location: string | undefined = parseData.data.location?.split("-")[0];
         const locationName = parseData.data.location?.split("-")[1];
         const locationBlock = parseData.data.location?.split("-")[2];
-        
-        // find least ranked incharge so far
-        let rankOfNewIncharge = 1;
+        const rank = parseData.data.rank;
 
         const newIncharge = await prisma.$transaction(async (tx) => {
-            const leastRank = await tx.issueIncharge.findFirst({
-                where: {
-                    location: {
-                        location: location as string,
-                        locationName: locationName as string,
-                        locationBlock: locationBlock as string    
-                    }
-                },
-                orderBy: {
-                    rank: "desc"
-                },
-            });
-    
-            if(leastRank) {
-                rankOfNewIncharge = leastRank.rank + 1;
-            }
-
             const isLocationFound = await tx.location.findFirst({
                 where: {
                     location: location as string,
@@ -72,12 +53,13 @@ router.post("/assign/incharge", async (req, res) => {
                 data: {
                     name: parseData.data.name,
                     email: parseData.data.email,
+                    phoneNumber: parseData.data.phoneNumber,
                     password: password,
                     role: parseData.data.role as "ISSUE_INCHARGE",
                     issueIncharge: {
                         create: {
                             locationId: isLocationFound.id,
-                            rank: rankOfNewIncharge,
+                            rank,
                             designation: parseData.data.designation,
                         },
                     },

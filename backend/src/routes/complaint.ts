@@ -1,54 +1,99 @@
 import Router from "express";
 import { PrismaClient } from "@prisma/client";
 import { CreateComplaintSchema } from "../types/complaint";
+import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 
 const prisma = new PrismaClient();
 const router = Router();
 
-router.post("/create", async (req, res) => {
+enum Role {
+    FACULTY = "FACULTY",
+    STUDENT = "STUDENT",
+}
+
+router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
-        const body = req.body; // { title: string, description: string, access: string, location: string, tags: string[], attachments: string[] }
+        const body = req.body; // { title: string, description: string, access: string, location: string, tags: int[], attachments: string[] }
         const parseData = CreateComplaintSchema.safeParse(body);
 
         if(!parseData.success) {
             throw new Error("Invalid Inputs");
         }
 
-        const hostelNumber = parseData.data.location.split("-")[0];
-        const hostelBlock = parseData.data.location.split("-")[1];
+        const location = parseData.data.location.split("-")[0];
+        const locationName = parseData.data.location.split("-")[1];
+        const locationBlock = parseData.data.location.split("-")[2];
 
-        console.log(hostelNumber, hostelBlock);
-        
+        let tagData: any[] = [];
+        let attachmentsData: any[] = [];
+
+        parseData.data.tags.forEach(id => {
+            tagData.push({ tagId: Number(id) });
+        });
+
+        parseData.data.attachments.forEach(url => {
+            attachmentsData.push({ imageUrl: url });
+        });
+
         // search for a particular tag which is important such as 'Hostel' out of all tags
-        const mainTag = parseData.data.tags.find((tag) => tag === "Hostel");
+        const mainTag = location;
+        let complaintId = null;
 
-        // switch(mainTag) {
-        //     case "Hostel":
-        //         // find the least ranked incharge of the hostel of the given location
-        //         const incharge = await prisma.hostel.findFirst({
-        //             where: {
-        //                 hostelNumber: parseInt(hostelNumber),
-        //                 block: hostelBlock
-        //             },
-        //             orderBy: {
-        //                 rank: "desc"
-        //             }
-        //         });
+        switch(mainTag) {
+            case "Hostel":
+                // find the least ranked incharge of the hostel of the given location
+                const issueIncharge = await prisma.issueIncharge.findFirst({
+                    where: {
+                        location: { location, locationName, locationBlock }
+                    }, 
+                    orderBy: {
+                        rank: "desc"
+                    }, 
+                    select: {
+                        inchargeId: true,
+                        locationId: true
+                    }
+                });
 
-        //         if(!incharge) {
-        //             throw new Error("Could not find the incharge of the hostel");
-        //         }
+                if(!issueIncharge) {
+                    throw new Error("No incharge found for the given location");
+                }
 
-        //         console.log(incharge);
-        //         break;
+                const createComplaint = await prisma.complaint.create({
+                    data: {
+                        title: parseData.data.title,
+                        description: parseData.data.description,
+                        access: parseData.data.access,
+                        complaintDetails: {
+                            create: {
+                                assignedTo: issueIncharge.inchargeId,
+                            }
+                        },
+                        userId: req.user.id,
+                        status: "PENDING",
+                        tags: {
+                            create: tagData
+                        },
+                        attachments: {
+                            create: attachmentsData
+                        },
+                    }
+                });
 
-        //     default:
-        //         throw new Error("Invalid tag");
-        // }
+                if(!createComplaint) {
+                    throw new Error("Could not create complaint. Please try again");
+                }
+                complaintId = createComplaint.id;
+                break;
+
+            default:
+                throw new Error("Invalid tag");
+        }
 
         res.status(201).json({
             ok: true,
-            message: "Complaint created successfully"
+            message: "Complaint created successfully",
+            complaintId
         });
     } catch(err) {
         res.status(400).json({

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import dotenv from "dotenv";
+import dotenv, { parse } from "dotenv";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { SigninSchema, SignupSchema } from "../types/user";
@@ -14,7 +14,7 @@ const secret: string | undefined = process.env.JWT_SECRET;
 
 router.post("/auth/signin", async (req, res) => {
     try {
-        const body = req.body; // { email: "", password: "", role: "" }
+        const body = req.body; // { email: "" or phoneNumber: "", password: "", role: "" }
         const parseData = SigninSchema.safeParse(body);
         
         if (!parseData.success) {
@@ -23,11 +23,21 @@ router.post("/auth/signin", async (req, res) => {
 
         
         // check if user exists
-        const user = await prisma.user.findFirst({
-            where: {
-                email: parseData.data.email,
-            }, 
-        });
+        let user = null;
+
+        if(parseData.data.email) {
+            user = await prisma.user.findFirst({
+                where: {
+                    email: parseData.data.email,
+                }, 
+            });
+        } else {
+            user = await prisma.user.findFirst({
+                where: {
+                    phoneNumber: parseData.data.phoneNumber,
+                }, 
+            });
+        }
         
         if (!user) {
             throw new Error("User not found");
@@ -40,16 +50,19 @@ router.post("/auth/signin", async (req, res) => {
 
         // check if role is correct
         if (user.role !== parseData.data.role) {
-            throw new Error("Unauthorized Access");
+            throw new Error("Authorization Error");
         }
 
-        const token = jwt.sign({
-            email: parseData.data.email,
-            role: parseData.data.role
-        }, secret as string);
+        const userId = user.id;
+        const role = user.role;
+
+        const token = jwt.sign({ userId, role }, secret as string);
 
         // expires in 30 days
-        res.cookie("token", token, { expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+        res.cookie("token", token, { httpOnly: true, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+
+        console.log(req.cookies);
+
         res.status(200).json({
             token: token,
             id: user.id,
@@ -68,7 +81,7 @@ router.post("/auth/signin", async (req, res) => {
 
 router.post("/auth/signup", async (req, res) => {
     try {
-        const body = req.body;
+        const body = req.body; // { name: string, email: string, phoneNumber: string, password: string, role: string }
         const parseData = SignupSchema.safeParse(body);
 
         if (!parseData.success) {
@@ -92,6 +105,7 @@ router.post("/auth/signup", async (req, res) => {
         const user = await prisma.user.create({
             data: {
                 email: parseData.data.email,
+                phoneNumber: parseData.data.phoneNumber,
                 password: password,
                 name: parseData.data.name,
                 role: parseData.data.role as "ADMIN" | "FACULTY" | "STUDENT"
@@ -102,12 +116,12 @@ router.post("/auth/signup", async (req, res) => {
             throw new Error("User not created");
         }
 
-        const token = jwt.sign({
-            email: parseData.data.email,
-            role: parseData.data.role
-        }, secret as string);
+        const userId = user.id;
+        const role = parseData.data.role;
 
-        res.cookie("token", token, { expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+        const token = jwt.sign({ userId, role }, secret as string);
+
+        res.cookie("token", token, { httpOnly: true, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
         res.status(201).json({
             token: token,
             user: user.id

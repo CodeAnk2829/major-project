@@ -17,7 +17,7 @@ model Attachment {
   id          String    @id @default(uuid())
   imageUrl    String
   complaintId String
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 }
 
 model Complaint {
@@ -29,8 +29,8 @@ model Complaint {
   feedbacks        Feedback[]
   notification     Notification[]
   tags             ComplaintCategory[]
-  userId           Int
-  user             User                @relation(fields: [userId], references: [id])
+  userId           String
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   status           Status              @default(UNRESOLVED)
   attachments      Attachment[]
   createdAt        DateTime            @default(now())
@@ -40,7 +40,7 @@ model Complaint {
 model ComplaintCategory {
   id          String    @id @default(uuid())
   complaintId String
-  complaints  Complaint @relation(fields: [complaintId], references: [id])
+  complaints  Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   tagId       Int
   tags        Tag       @relation(fields: [tagId], references: [id])
 
@@ -50,9 +50,9 @@ model ComplaintCategory {
 model ComplaintDetail {
   id          String    @id @default(uuid())
   complaintId String    @unique
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
-  assignedTo  Int
-  user        User      @relation(fields: [assignedTo], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  assignedTo  String
+  user        User      @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
   actionTaken Boolean   @default(false)
   resolvedAt  DateTime  @updatedAt
 }
@@ -60,15 +60,15 @@ model ComplaintDetail {
 model Feedback {
   id          String    @id @default(uuid())
   complaintId String
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   rating      Float
   comments    String
 }
 
 model IssueIncharge {
   id          String   @id @default(uuid())
-  inchargeId  Int      @unique
-  incharge    User     @relation(fields: [inchargeId], references: [id])
+  inchargeId  String   @unique
+  incharge    User     @relation(fields: [inchargeId], references: [id], onDelete: Cascade)
   locationId  Int
   location    Location @relation(fields: [locationId], references: [id])
   designation String
@@ -89,10 +89,10 @@ model Location {
 
 model Notification {
   id          String    @id @default(uuid())
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   complaintId String
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   message     String
   sentAt      DateTime
 }
@@ -112,9 +112,10 @@ model Tag {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
+  id               String            @id @default(uuid())
   name             String
   email            String            @unique
+  phoneNumber      String
   password         String
   role             Role              @default(STUDENT)
   complaints       Complaint[]
@@ -127,10 +128,10 @@ model User {
 
 model Upvote {
   id          String    @id @default(uuid())
-  userId      Int       @unique
-  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   complaintId String
-  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
   @@unique([userId, complaintId])
 }
