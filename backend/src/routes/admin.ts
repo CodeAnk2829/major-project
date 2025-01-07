@@ -2,12 +2,16 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import { AssignmentSchema } from "../types/assignment";
+import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 
 const prisma = new PrismaClient();
 const router = Router();
 
+enum Role {
+    ADMIN = "ADMIN"
+}
 
-router.post("/assign/incharge", async (req, res) => {
+router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, designation: String, rank: Number }
         const parseData = AssignmentSchema.safeParse(body);
