@@ -13,7 +13,7 @@ function SignIn() {
     const [formData, setFormData] = useState({
         email: "",
         password: "",
-        role: "COMPLAINER", // Default role
+        role: "STUDENT", // Default role
       });
   const [errorMessage, setErrorMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ function SignIn() {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await fetch("http://localhost:3000/api/v1/auth/signin", {
+      const res = await fetch("http://localhost:3000/api/v1/user/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,10 +42,12 @@ function SignIn() {
       });
 
       const data = await res.json();
+      console.log(data);
       localStorage.setItem("token", data.token);
 
-      if (data.success === false) {
-        return setErrorMessage(data.message);
+      if (data.ok === false) {
+        setLoading(false);
+        return setErrorMessage(data.error);
       }
 
       setLoading(false);
@@ -120,7 +122,7 @@ function SignIn() {
               <TextInput
                 id="password"
                 type="password"
-                placeholder="Password"
+                placeholder="******"
                 className="mt-1  text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
               />
@@ -134,7 +136,9 @@ function SignIn() {
                 onChange={handleChange}
                 value={formData.role}
               >
-                <option value="COMPLAINER">Student/Faculty </option>
+                <option value="STUDENT">Student </option>
+                <option value="FACULTY">Faculty </option>
+                <option value="ISSUE_INCHARGE">Issue Incharge</option>
                 <option value="ADMIN">Admin</option>
               </Select>
             </div>
@@ -175,7 +179,7 @@ function SignIn() {
             </Button>
 
             {/* Sign Up Link */}
-            <p className="text-center text-sm mt-4">
+            <p className="text-center text-sm mt-4"> <span>Don't have an account?     </span>
               <Link to="/sign-up" className="text-blue-500">
                 Sign Up
               </Link>
