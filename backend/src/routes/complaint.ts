@@ -35,10 +35,6 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
             attachmentsData.push({ imageUrl: url });
         });
 
-        // search for a particular tag which is important such as 'Hostel' out of all tags
-        const mainTag = location;
-        let complaintId = null;
-
         // find the least ranked incharge of the hostel of the given location
         const issueIncharge = await prisma.issueIncharge.findFirst({
             where: {
@@ -56,7 +52,7 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
         if (!issueIncharge) {
             throw new Error("No incharge found for the given location");
         }
-        
+
         const createComplaint = await prisma.complaint.create({
             data: {
                 title: parseData.data.title,
@@ -81,17 +77,93 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
         if (!createComplaint) {
             throw new Error("Could not create complaint. Please try again");
         }
-        complaintId = createComplaint.id;
 
         res.status(201).json({
             ok: true,
             message: "Complaint created successfully",
-            complaintId
+            complaintId: createComplaint.id,
+            status: createComplaint.status,
+            assignedTo: issueIncharge.inchargeId,
+            location: parseData.data.location,
+            createdAt: createComplaint.createdAt
         });
     } catch (err) {
         res.status(400).json({
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while creating the complaint"
+        });
+    }
+});
+
+router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const complaints = await prisma.complaint.findMany({
+            where: {
+                access: "PUBLIC"
+            }
+        });
+
+        res.status(200).json({
+            ok: true,
+            complaints
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching complaints"
+        });
+    }
+});
+
+router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const complaintId = req.params.id;
+        const complaint = await prisma.complaint.findUnique({
+            where: {
+                id: complaintId
+            }
+        });
+
+        res.status(200).json({
+            ok: true,
+            complaint
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching complaint"
+        });
+    }
+});
+
+router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const userId = req.params.id;
+        const loggedInUserId = req.user.id;
+
+        // check whether the loggedIn user id and the requested user id are same
+        if (userId !== loggedInUserId) {
+            throw new Error("Unauthorized");
+        }
+
+        const complaints = await prisma.complaint.findMany({
+            where: {
+                userId
+            }
+        });
+
+        if(!complaints) {
+            throw new Error("No complaints found for the given user");
+        }
+
+        res.status(200).json({
+            ok: true,
+            complaints
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching complaints"
         });
     }
 });
