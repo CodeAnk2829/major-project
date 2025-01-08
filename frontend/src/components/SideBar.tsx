@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signOutSuccess } from "../redux/user/userSlice";
 import { FaSignOutAlt } from "react-icons/fa";
+import CreateComplaintModal from "./CreateComplaintModal";
 
 const getInitials = (name: string) => {
   const nameParts = name.trim().split(" ");
@@ -23,6 +24,7 @@ const getInitials = (name: string) => {
 };
 
 const SideBar = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const customTheme = {
     root: {
       base: "h-full",
@@ -125,93 +127,108 @@ const SideBar = () => {
   };
 
   return (
-    <Sidebar
-      className="w-96 min-h-screen flex flex-col justify-between p-0 "
-      theme={customTheme}
-    >
-      {/* Sidebar Logo */}
-      <Sidebar.Logo
-        href="#"
-        img="/manit_logo.png"
-        imgAlt="MANIT logo"
-        className="[&>img]:h-16 [&>img]:w-16 [&>img]:rounded-lg border-none"
+    <div>
+      <Sidebar
+        className="w-96 min-h-screen flex flex-col justify-between p-0 "
+        theme={customTheme}
       >
-        <div>
-          <span className="text-xl font-bold text-gray-800">Maulana Azad</span>
-          <br />
-          <span className="text-lg font-semibold text-gray-700">
-            National Institute of Technology
-          </span>
-          <br />
-          <span className="text-md font-light text-gray-600">
-            Complaint Portal
-          </span>
-        </div>
-      </Sidebar.Logo>
-
-      <Sidebar.Items className="">
-        <Sidebar.ItemGroup className="flex flex-col gap-1">
-          {currentUser && (
-            <Link to="/">
-              <Sidebar.Item icon={HiHome} as="div" className="text-xl py-5 ">
-                Home
-              </Sidebar.Item>
-            </Link>
-          )}
-          {currentUser && (
-            <Link to="/dashboard">
-              <Sidebar.Item icon={HiChartPie} as="div" className="text-xl py-5">
-                Dashboard
-              </Sidebar.Item>
-            </Link>
-          )}
-          {currentUser && (
-            <Link to="/notifications">
-              <Sidebar.Item icon={HiBell} as="div" className="text-xl py-5">
-                Notifications
-              </Sidebar.Item>
-            </Link>
-          )}
-
-          {currentUser && (
-            <Link to="/profile">
-              <Sidebar.Item icon={HiUser} as="div" className="text-xl py-5">
-                Profile
-              </Sidebar.Item>
-            </Link>
-          )}
-        </Sidebar.ItemGroup>
-
-        <Sidebar.ItemGroup className="flex flex-col gap-1 items-center">
-          {currentUser && (
-            <button className="text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center me-2 mb-2 mt-64 w-64 ">
-              Create Complaint
-            </button>
-          )}
-
-          <div className="mt-auto w-full p-4 rounded-lg flex items-center gap-4 pb-2">
-            {currentUser && (
-              <div className="w-16 h-16 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                {getInitials(currentUser?.name || "Guest User")}
-              </div>
-            )}
-            <div>
-              <h2 className="font-bold">@{currentUser?.name}</h2>
-              <p className="text-gray-500">{currentUser?.email}</p>
-            </div>
+        {/* Sidebar Logo */}
+        <Sidebar.Logo
+          href="#"
+          img="/manit_logo.png"
+          imgAlt="MANIT logo"
+          className="[&>img]:h-16 [&>img]:w-16 [&>img]:rounded-lg border-none"
+        >
+          <div>
+            <span className="text-xl font-bold text-gray-800">
+              Maulana Azad
+            </span>
+            <br />
+            <span className="text-lg font-semibold text-gray-700">
+              National Institute of Technology
+            </span>
+            <br />
+            <span className="text-md font-light text-gray-600">
+              Complaint Portal
+            </span>
           </div>
-        </Sidebar.ItemGroup>
-        <Sidebar.ItemGroup>
-          <Sidebar.Item
-            icon={FaSignOutAlt}
-            className="cursor-pointer py-5"
-            onClick={handleSignout}
-          >
-            Sign Out
-          </Sidebar.Item>
-        </Sidebar.ItemGroup>
-      </Sidebar.Items>
-    </Sidebar>
+        </Sidebar.Logo>
+
+        <Sidebar.Items className="">
+          <Sidebar.ItemGroup className="flex flex-col gap-1">
+            {currentUser && (
+              <Link to="/">
+                <Sidebar.Item icon={HiHome} as="div" className="text-xl py-5 ">
+                  Home
+                </Sidebar.Item>
+              </Link>
+            )}
+            {currentUser && (
+              <Link to="/dashboard">
+                <Sidebar.Item
+                  icon={HiChartPie}
+                  as="div"
+                  className="text-xl py-5"
+                >
+                  Dashboard
+                </Sidebar.Item>
+              </Link>
+            )}
+            {currentUser && (
+              <Link to="/notifications">
+                <Sidebar.Item icon={HiBell} as="div" className="text-xl py-5">
+                  Notifications
+                </Sidebar.Item>
+              </Link>
+            )}
+
+            {currentUser && (
+              <Link to="/profile">
+                <Sidebar.Item icon={HiUser} as="div" className="text-xl py-5">
+                  Profile
+                </Sidebar.Item>
+              </Link>
+            )}
+          </Sidebar.ItemGroup>
+
+          <Sidebar.ItemGroup className="flex flex-col gap-1 items-center">
+            {currentUser && (
+              <button
+                className="text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center me-2 mb-2 mt-72 w-64"
+                onClick={() => setIsModalOpen(true)}
+              >
+                Create Complaint
+              </button>
+            )}
+
+            <div className="mt-auto w-full p-4 rounded-lg flex items-center gap-4 pb-2">
+              {currentUser && (
+                <div className="w-16 h-16 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  {getInitials(currentUser?.name || "Guest User")}
+                </div>
+              )}
+              <div>
+                <h2 className="font-bold">@{currentUser?.name}</h2>
+                <p className="text-gray-500">{currentUser?.email}</p>
+              </div>
+            </div>
+          </Sidebar.ItemGroup>
+          <Sidebar.ItemGroup>
+            <Sidebar.Item
+              icon={FaSignOutAlt}
+              className="cursor-pointer py-5"
+              onClick={handleSignout}
+            >
+              Sign Out
+            </Sidebar.Item>
+          </Sidebar.ItemGroup>
+        </Sidebar.Items>
+      </Sidebar>
+      <CreateComplaintModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </div>
   );
 };
 
