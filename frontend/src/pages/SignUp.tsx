@@ -12,10 +12,11 @@ import { Link, useNavigate } from "react-router-dom";
 function SignUp() {
   const [formData, setFormData] = useState({
     name: "",
+    phoneNumber: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "STUDENT", // Hardcoded to match the expected value
+    role: "STUDENT", 
   });
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,6 +37,9 @@ function SignUp() {
     if (formData.password.length < 6) {
       return setErrorMessage("Password must be at least 6 characters long");
     }
+    if (formData.phoneNumber.length !== 10) {
+      return setErrorMessage("Phone Number must be 10 digits");
+    }
     if (formData.password !== formData.confirmPassword) {
       setErrorMessage("Passwords do not match");
       (document.getElementById("confirmPassword") as HTMLInputElement)?.focus();
@@ -45,12 +49,14 @@ function SignUp() {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await fetch("http://localhost:3000/api/v1/user/auth/signup", {
+      const { confirmPassword, ...dataToSend } = formData;
+      const res = await fetch("/api/v1/user/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        credentials: "include",
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await res.json();
@@ -78,13 +84,13 @@ function SignUp() {
           alt="NIT Bhopal Logo"
           className="w-1/3 mb-4"
         />
-        <h1 className="text-2xl font-bold text-center text-[rgba(35,75,138,1)]">
+        <h1 className="text-2xl font-bold text-center text-[rgba(60,79,131,1)]">
           MAULANA AZAD
         </h1>
-        <h2 className="text-xl font-bold text-center text-[rgba(35,75,138,1)]">
+        <h2 className="text-xl font-bold text-center text-[rgba(60,79,131,1)]">
           NATIONAL INSTITUTE OF TECHNOLOGY
         </h2>
-        <h3 className="text-lg font-bold text-center text-[rgba(35,75,138,1)]">
+        <h3 className="text-lg font-bold text-center text-[rgba(60,79,131,1)]">
           BHOPAL
         </h3>
       </div>
@@ -96,19 +102,19 @@ function SignUp() {
             alt="NIT Bhopal Logo"
             className="w-24 mb-4"
           />
-          <h1 className="text-xl font-bold text-center text-[rgba(16,76,144,1)]">
+          <h1 className="text-xl font-bold text-center text-[rgba(60,79,131,1)]">
             MAULANA AZAD
           </h1>
-          <h2 className="text-lg font-bold text-center text-[rgba(16,76,144,1)]">
+          <h2 className="text-lg font-bold text-center text-[rgba(60,79,131,1)]">
             NATIONAL INSTITUTE OF TECHNOLOGY
           </h2>
-          <h3 className="text-base font-bold text-center text-[rgba(16,76,144,1)]">
+          <h3 className="text-base font-bold text-center text-[rgba(60,79,131,1)]">
             BHOPAL
           </h3>
         </div>
 
         <div className="w-full max-w-md p-6 bg-white border rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-center mb-6 text-[rgba(16,76,144,1)]">
+          <h2 className="text-2xl font-bold text-center mb-6 text-[rgba(60,79,131,1)]">
             Sign Up
           </h2>
           <form onSubmit={handleSubmit}>
@@ -119,6 +125,19 @@ function SignUp() {
                 id="name"
                 type="text"
                 placeholder="Your Name"
+                required
+                className="mt-1 text-gray-900 text-sm rounded-lg"
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Phone Number Field */}
+            <div className="mb-4">
+              <Label htmlFor="phoneNumber" value="Phone Number" />
+              <TextInput
+                id="phoneNumber"
+                type="phoneNumber"
+                placeholder="1234567890"
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
@@ -180,7 +199,7 @@ function SignUp() {
             {/* Sign Up Button */}
             <Button
               type="submit"
-              className="w-full mb-2 bg-[rgba(16,76,144,1)] enabled:hover:bg-[rgba(16,76,144,0.9)]"
+              className="w-full mb-2 bg-[rgba(60,79,131,1)] enabled:hover:bg-[rgba(16,76,144,0.9)]"
               disabled={loading}
             >
               {loading ? (

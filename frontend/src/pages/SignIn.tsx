@@ -32,11 +32,12 @@ function SignIn() {
 
     try {
       dispatch(signInStart());
-      const res = await fetch("http://localhost:3000/api/v1/user/auth/signin", {
+      const res = await fetch("/api/v1/user/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(formData),
       });
 
@@ -64,13 +65,13 @@ function SignIn() {
           alt="NIT Bhopal Logo"
           className="w-1/3 mb-4"
         />
-        <h1 className="text-2xl font-bold text-center text-[rgba(35,75,138,1)]">
+        <h1 className="text-2xl font-bold text-center text-[rgba(60,79,131,1)]">
           MAULANA AZAD
         </h1>
-        <h2 className="text-xl font-bold text-center text-[rgba(35,75,138,1)]">
+        <h2 className="text-xl font-bold text-center text-[rgba(60,79,131,1)]">
           NATIONAL INSTITUTE OF TECHNOLOGY
         </h2>
-        <h3 className="text-lg font-bold text-center text-[rgba(35,75,138,1)]">
+        <h3 className="text-lg font-bold text-center text-[rgba(60,79,131,1)]">
           BHOPAL
         </h3>
       </div>
@@ -82,19 +83,19 @@ function SignIn() {
             alt="NIT Bhopal Logo"
             className="w-24 mb-4"
           />
-          <h1 className="text-xl font-bold text-center text-[rgba(16,76,144,1)]">
+          <h1 className="text-xl font-bold text-center text-[rgba(60,79,131,1)]">
             MAULANA AZAD
           </h1>
-          <h2 className="text-lg font-bold text-center text-[rgba(16,76,144,1)]">
+          <h2 className="text-lg font-bold text-center text-[rgba(60,79,131,1)]">
             NATIONAL INSTITUTE OF TECHNOLOGY
           </h2>
-          <h3 className="text-base font-bold text-center text-[rgba(16,76,144,1)]">
+          <h3 className="text-base font-bold text-center text-[rgba(60,79,131,1)]">
             BHOPAL
           </h3>
         </div>
 
         <div className="w-full max-w-md p-6 bg-white border rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-center mb-6 text-[rgba(16,76,144,1)]">
+          <h2 className="text-2xl font-bold text-center mb-6 text-[rgba(60,79,131,1)]">
             Sign In
           </h2>
           <form onSubmit={handleSubmit}>
@@ -160,7 +161,7 @@ function SignIn() {
             {/* Login Button */}
             <Button
               type="submit"
-              className="w-full mb-2 bg-[rgba(16,76,144,1)] enabled:hover:bg-[rgba(16,76,144,0.9)]"
+              className="w-full mb-2 bg-[rgba(60,79,131,1)] enabled:hover:bg-[rgba(16,76,144,0.9)]"
               disabled={loading}
             >
               {loading ? (
