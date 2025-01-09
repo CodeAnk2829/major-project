@@ -24,6 +24,9 @@ function SignIn() {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
+  const {currentUser} = useSelector((state) => state.user);
+  console.log(currentUser.role);
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
@@ -50,7 +53,17 @@ function SignIn() {
       }
       if (res.ok) {
         dispatch(signInSuccess(data));
-        navigate("/");
+        if(currentUser.role === "STUDENT" || currentUser.role === "FACULTY") {
+          navigate("/");
+        }
+
+        if(currentUser.role === "ISSUE_INCHARGE"){
+          navigate("/incharge-dashboard");
+        }
+
+        if(currentUser.role === "ADMIN"){
+          navigate("/admin-dashboard");
+        }
       }
     } catch (error: any) {
       dispatch(signInFailure(error.message));
