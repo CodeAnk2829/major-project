@@ -11,8 +11,9 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signOutSuccess } from "../redux/user/userSlice";
-import { FaSignOutAlt } from "react-icons/fa";
+import { FaPlus, FaSignOutAlt } from "react-icons/fa";
 import CreateComplaintModal from "./CreateComplaintModal";
+import { FaChevronRight } from "react-icons/fa6";
 
 const getInitials = (name: string) => {
   const nameParts = name.trim().split(" ");
@@ -25,86 +26,7 @@ const getInitials = (name: string) => {
 
 const SideBar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const customTheme = {
-    root: {
-      base: "h-full",
-      collapsed: {
-        on: "w-16",
-        off: "w-64",
-      },
-      inner:
-        "h-full overflow-y-auto overflow-x-hidden rounded bg-[rgb(222,224,244)] py-4 dark:bg-gray-800 h-screen",
-    },
-    collapse: {
-      button:
-        "group flex w-full items-center rounded-lg p-2 text-base font-normal text-gray-900 transition duration-75 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700",
-      icon: {
-        base: "h-6 w-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white",
-        open: {
-          off: "",
-          on: "text-gray-900",
-        },
-      },
-      label: {
-        base: "ml-3 flex-1 whitespace-nowrap text-left",
-        icon: {
-          base: "h-6 w-6 transition delay-0 ease-in-out",
-          open: {
-            on: "rotate-180",
-            off: "",
-          },
-        },
-      },
-      list: "space-y-2 py-2",
-    },
-    cta: {
-      base: "mt-6 rounded-lg bg-gray-100 p-4 dark:bg-gray-700",
-      color: {
-        blue: "bg-cyan-50 dark:bg-cyan-900",
-        dark: "bg-dark-50 dark:bg-dark-900",
-        failure: "bg-red-50 dark:bg-red-900",
-        gray: "bg-alternative-50 dark:bg-alternative-900",
-        green: "bg-green-50 dark:bg-green-900",
-        light: "bg-light-50 dark:bg-light-900",
-        red: "bg-red-50 dark:bg-red-900",
-        purple: "bg-purple-50 dark:bg-purple-900",
-        success: "bg-green-50 dark:bg-green-900",
-        yellow: "bg-yellow-50 dark:bg-yellow-900",
-        warning: "bg-yellow-50 dark:bg-yellow-900",
-      },
-    },
-    item: {
-      base: "flex items-center justify-center rounded-lg p-2 text-base font-normal text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 ml-2",
-      active: "bg-gray-100 dark:bg-gray-700",
-      collapsed: {
-        insideCollapse: "group w-full pl-8 transition duration-75",
-        noIcon: "font-bold",
-      },
-      content: {
-        base: "flex-1 whitespace-nowrap px-3",
-      },
-      icon: {
-        base: "h-6 w-6 flex-shrink-0 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white",
-        active: "text-gray-700 dark:text-gray-100",
-      },
-      label: "",
-      listItem: "",
-    },
-    items: {
-      base: "",
-    },
-    itemGroup: {
-      base: "mt-4 space-y-2 border-t border-[rgb(60,79,131)] pt-4 first:mt-0 first:border-t-0 first:pt-0 dark:border-gray-700",
-    },
-    logo: {
-      base: "mb-5 flex items-center bg-gray-50 w-96 pl-2 py-2.5 -mt-5 dark:bg-gray-800",
-      collapsed: {
-        on: "hidden",
-        off: "self-center whitespace-nowrap text-xl font-semibold dark:text-white",
-      },
-      img: "mr-3 h-6 sm:h-7",
-    },
-  };
+  const [open, setOpen] = useState(true);
   const dispatch = useDispatch();
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
@@ -127,19 +49,28 @@ const SideBar = () => {
   };
 
   return (
-    <div>
-      <Sidebar
-        className="w-96 min-h-screen flex flex-col justify-between p-0 "
-        theme={customTheme}
+    <div className="flex">
+      <div
+        className={` ${
+          open ? "w-full" : "w-24"
+        } bg-[rgb(224,224,244)] h-screen p-5 pt-8 relative duration-300 min-h-fit`}
       >
-        {/* Sidebar Logo */}
-        <Sidebar.Logo
-          href="#"
-          img="/manit_logo.png"
-          imgAlt="MANIT logo"
-          className="[&>img]:h-16 [&>img]:w-16 [&>img]:rounded-lg border-none"
-        >
-          <div>
+        <FaChevronRight
+          className={`absolute cursor-pointer -right-3 top-9 w-7 bg-white border-dark-purple
+        border-2 rounded-full  ${!open && "rotate-180"}`}
+          onClick={() => setOpen(!open)}
+          color="bg-rgb[(224,224,244)]"
+          fontSize="1.5em"
+        />
+
+        <div className={`flex gap-x-4 items-center`}>
+          <img
+            src="/manit_logo.png"
+            className={`cursor-pointer duration-500 ${
+              open && "rotate-[360deg] h-16"
+            }`}
+          />
+          <div className={`${!open && "hidden"}`}>
             <span className="text-xl font-bold text-gray-800">
               Maulana Azad
             </span>
@@ -152,78 +83,130 @@ const SideBar = () => {
               Complaint Portal
             </span>
           </div>
-        </Sidebar.Logo>
+        </div>
 
-        <Sidebar.Items className="">
-          <Sidebar.ItemGroup className="flex flex-col gap-1">
-            {currentUser && (
-              <Link to="/">
-                <Sidebar.Item icon={HiHome} as="div" className="text-xl py-5 ">
+        <ul className="pt-6">
+          <div className="flex-grow">
+            <Link to={"/"}>
+              <li
+                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+              >
+                <HiHome className="text-2xl" />
+                <span
+                  className={`${
+                    !open && "hidden"
+                  } origin-left duration-200 text-2xl`}
+                >
                   Home
-                </Sidebar.Item>
-              </Link>
-            )}
-            {currentUser && (
-              <Link to="/dashboard">
-                <Sidebar.Item
-                  icon={HiChartPie}
-                  as="div"
-                  className="text-xl py-5"
+                </span>
+              </li>
+            </Link>
+
+            <Link to={"/dashboard"}>
+              <li
+                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+              >
+                <HiChartPie className="text-2xl" />
+                <span
+                  className={`${
+                    !open && "hidden"
+                  } origin-left duration-200 text-2xl`}
                 >
                   Dashboard
-                </Sidebar.Item>
-              </Link>
-            )}
-            {currentUser && (
-              <Link to="/notifications">
-                <Sidebar.Item icon={HiBell} as="div" className="text-xl py-5">
+                </span>
+              </li>
+            </Link>
+            <Link to={"/notifications"}>
+              <li
+                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+              >
+                <HiBell className="text-2xl" />
+                <span
+                  className={`${
+                    !open && "hidden"
+                  } origin-left duration-200 text-2xl`}
+                >
                   Notifications
-                </Sidebar.Item>
-              </Link>
-            )}
+                </span>
+              </li>
+            </Link>
 
-            {currentUser && (
-              <Link to="/profile">
-                <Sidebar.Item icon={HiUser} as="div" className="text-xl py-5">
+            <Link to={"/profile"}>
+              <li
+                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+              >
+                <HiUser className="text-2xl" />
+                <span
+                  className={`${
+                    !open && "hidden"
+                  } origin-left duration-200 text-2xl`}
+                >
                   Profile
-                </Sidebar.Item>
-              </Link>
-            )}
-          </Sidebar.ItemGroup>
+                </span>
+              </li>
+            </Link>
 
-          <Sidebar.ItemGroup className="flex flex-col gap-1 items-center">
-            {currentUser && (
+            <li
+              className={`flex justify-center rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800  items-center gap-x-4 mt-3 text-2xl} `}
+            >
               <button
-                className="text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center me-2 mb-2 mt-72 w-64"
+                className={` text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center w-2/3 mt-10 ${
+                  !open && "hidden"
+                }`}
                 onClick={() => setIsModalOpen(true)}
               >
                 Create Complaint
               </button>
-            )}
-
-            <div className="mt-auto w-full p-4 rounded-lg flex items-center gap-4 pb-2">
-              {currentUser && (
-                <div className="w-16 h-16 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  {getInitials(currentUser?.name || "Guest User")}
-                </div>
+              {!open && (
+                <FaPlus
+                  className="text-2xl"
+                  onClick={() => setIsModalOpen(true)}
+                />
               )}
-              <div>
-                <h2 className="font-bold">@{currentUser?.name}</h2>
-                <p className="text-gray-500">{currentUser?.email}</p>
-              </div>
-            </div>
-          </Sidebar.ItemGroup>
-          <Sidebar.ItemGroup>
-            <Sidebar.Item
-              icon={FaSignOutAlt}
-              className="cursor-pointer py-5"
+            </li>
+
+            <Link to={"/profile"}>
+              <li
+                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800  items-center gap-x-4 mt-3`}
+              >
+                <div
+                  className={`flex items-center ${
+                    !open ? "justify-center" : "justify-start"
+                  } w-full p-4`}
+                >
+                  <div
+                    className={`${
+                      open ? "w-16 h-16" : "w-12 h-12"
+                    } bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white text-2xl font-bold`}
+                  >
+                    {getInitials(currentUser?.name || "Guest User")}
+                  </div>
+                  {open && (
+                    <div className="ml-4">
+                      <h2 className="font-bold">@{currentUser?.name}</h2>
+                      <p className="text-gray-500">{currentUser?.email}</p>
+                    </div>
+                  )}
+                </div>
+              </li>
+            </Link>
+
+            <li
+              className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
               onClick={handleSignout}
             >
-              Sign Out
-            </Sidebar.Item>
-          </Sidebar.ItemGroup>
-        </Sidebar.Items>
-      </Sidebar>
+              <FaSignOutAlt className="text-2xl" />
+              <span
+                className={`${
+                  !open && "hidden"
+                } origin-left duration-200 text-2xl`}
+              >
+                Sign Out
+              </span>
+            </li>
+          </div>
+        </ul>
+      </div>
       <CreateComplaintModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
