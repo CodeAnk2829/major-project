@@ -12,7 +12,8 @@ import {
   Tooltip,
 } from "flowbite-react";
 import React, { useState } from "react";
-import { CircularProgressbar } from "react-circular-progressbar";
+import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
+import 'react-circular-progressbar/dist/styles.css';
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -259,12 +260,10 @@ const CreateComplaintModal = ({
             const progress = Math.round(
               (progressEvent.loaded / progressEvent.total) * 100
             );
-            console.log(progress);
             setImageUploadProgress(progress);
           },
         }
       );
-      console.log(res.data.url);
       const uploadedImageUrl = res.data.url;
       setImageUploadProgress(null);
       setImageUploadError(null);
@@ -272,7 +271,6 @@ const CreateComplaintModal = ({
     } catch (error) {
       setImageUploadError("Image upload failed");
       setImageUploadProgress(null);
-      console.log("Error is here   ",error);
     }
   };
 
@@ -302,7 +300,6 @@ const CreateComplaintModal = ({
       
     } catch (error) {
       setCreateError("Error creating complaint. Try again later.");
-      console.error("Error creating complaint:", error);
     }
   };
 
@@ -490,7 +487,10 @@ const CreateComplaintModal = ({
                       <CircularProgressbar
                         value={imageUploadProgress}
                         text={`${imageUploadProgress || 0}%`}
-                        className="text-[rgb(60,79,131)]"
+                        className="text-[rgb(60,79,131)] "
+                        styles={buildStyles({
+                          pathColor: '#3C4F83',
+                        })}
                       />
                     </div>
                   ) : (
