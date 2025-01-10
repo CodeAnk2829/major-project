@@ -49,11 +49,11 @@ const SideBar = () => {
   };
 
   return (
-    <div className="flex">
+    <div className="flex ">
       <div
         className={` ${
           open ? "w-full" : "w-24"
-        } bg-[rgb(224,224,244)] h-screen p-5 pt-8 relative duration-300 min-h-fit`}
+        } bg-[rgb(224,224,244)] min-h-screen h-full p-5 pt-8 relative duration-300`}
       >
         <FaChevronRight
           className={`absolute cursor-pointer -right-3 top-9 w-7 bg-white border-dark-purple
@@ -89,7 +89,7 @@ const SideBar = () => {
           <div className="flex-grow">
             <Link to={"/"}>
               <li
-                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+                className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
               >
                 <HiHome className="text-2xl" />
                 <span
@@ -104,7 +104,7 @@ const SideBar = () => {
 
             <Link to={"/dashboard"}>
               <li
-                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+                className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
               >
                 <HiChartPie className="text-2xl" />
                 <span
@@ -118,7 +118,7 @@ const SideBar = () => {
             </Link>
             <Link to={"/notifications"}>
               <li
-                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+                className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
               >
                 <HiBell className="text-2xl" />
                 <span
@@ -133,7 +133,7 @@ const SideBar = () => {
 
             <Link to={"/profile"}>
               <li
-                className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+                className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
               >
                 <HiUser className="text-2xl" />
                 <span
@@ -147,7 +147,7 @@ const SideBar = () => {
             </Link>
 
             <li
-              className={`flex justify-center rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800  items-center gap-x-4 mt-3 text-2xl} `}
+              className={`flex justify-center rounded-md p-3.5 cursor-pointer text-gray-800  items-center gap-x-4 mt-3 text-2xl} `}
             >
               <button
                 className={` text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center w-2/3 mt-10 ${
@@ -176,7 +176,7 @@ const SideBar = () => {
                 >
                   <div
                     className={`${
-                      open ? "w-16 h-16" : "w-12 h-12"
+                      open ? "w-16 h-16" : "w-12 h-12 text-xl"
                     } bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white text-2xl font-bold`}
                   >
                     {getInitials(currentUser?.name || "Guest User")}
@@ -192,7 +192,7 @@ const SideBar = () => {
             </Link>
 
             <li
-              className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl} `}
+              className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl `}
               onClick={handleSignout}
             >
               <FaSignOutAlt className="text-2xl" />

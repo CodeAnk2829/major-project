@@ -33,15 +33,15 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col md:flex-row h-screen">
       {/* Sidebar */}
-      <div className="w-1/4">
+      <div className="w-full md:w-1/4">
         <Sidebar />
       </div>
 
       {/* Main Section */}
-      <div className="w-3/4 flex flex-col px-6 py-4">
-        <div className="mb-8">
+      <div className="w-full md:w-3/4 flex flex-col px-6 py-4">
+        <div className="hidden mb-8">
           <SearchBar />
         </div>
         {loading ? (
