@@ -15,3 +15,18 @@ export const AssignmentSchema = z.object({
     designation: z.string().min(3),
     rank: z.number(),
 });
+
+export const RemoveSchema = z.object({
+    userId: z.string()
+});
+
+export const UpdateSchema = z.object({
+    name: z.string().min(3),
+    email: z.string().email(),
+    phoneNumber: z.string().min(10).max(10),
+    password: z.string().min(6),
+    role: z.nativeEnum(Role),
+    location: z.string(),
+    designation: z.string().min(3),
+    rank: z.number(),
+});

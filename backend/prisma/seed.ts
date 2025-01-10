@@ -11,7 +11,15 @@ async function main() {
                 { tagName: "Department" },
                 { tagName: "Cleaning" },
                 { tagName: "Sports" },
-                { tagName: "Bus Services" },
+                { tagName: "Internet" },
+                { tagName: "Wi-Fi" },
+                { tagName: "LAN" },
+                { tagName: "Electricity" },
+                { tagName: "Equipment" },
+                { tagName: "Carpentry" },
+                { tagName: "Dispensary" },
+                { tagName: "Ambulance" },
+                { tagName: "Medical Services" },
                 { tagName: "Others" }
             ]
         });

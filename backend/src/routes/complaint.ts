@@ -100,6 +100,9 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
         const complaints = await prisma.complaint.findMany({
             where: {
                 access: "PUBLIC"
+            }, 
+            orderBy: {
+                createdAt: "desc" // get recent complaints first
             }
         });
 
@@ -149,6 +152,9 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
         const complaints = await prisma.complaint.findMany({
             where: {
                 userId
+            }, 
+            orderBy: {
+                createdAt: "desc" // get recent complaints first
             }
         });
 
@@ -165,6 +171,17 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while fetching complaints"
         });
+    }
+});
+
+router.post("/upvote", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        
+    } catch (err) {
+        res.json(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while voting"
+        })
     }
 });
 
