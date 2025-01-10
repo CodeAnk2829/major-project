@@ -41,7 +41,7 @@ const Home = () => {
 
       {/* Main Section */}
       <div className="w-full md:w-3/4 flex flex-col px-6 py-4">
-        <div className="hidden mb-8">
+        <div className="md:visible mb-8">
           <SearchBar />
         </div>
         {loading ? (
