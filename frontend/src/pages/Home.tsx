@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../components/SideBar";
 import SearchBar from "../components/SearchBar";
 import ComplaintCard from "../components/ComplaintCard";
 import { Spinner } from "flowbite-react";
+import SideBar from "../components/SideBar";
 
 const Home = () => {
   const [complaints, setComplaints] = useState([]);
@@ -33,10 +33,10 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
+    <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <Sidebar />
+        <SideBar />
       </div>
 
       {/* Main Section */}
@@ -60,6 +60,10 @@ const Home = () => {
                   {complaints.map((complaint) => (
                     <ComplaintCard key={complaint.id} complaint={complaint} />
                   ))}
+                  {complaints.map((complaint) => (
+                    <ComplaintCard key={complaint.id} complaint={complaint} />
+                  ))}
+                  
                 </div>
               </div>
             ) : (

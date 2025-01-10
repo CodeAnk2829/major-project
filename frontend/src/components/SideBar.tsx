@@ -49,11 +49,10 @@ const SideBar = () => {
   };
 
   return (
-    <div className="flex ">
       <div
         className={` ${
           open ? "w-full" : "w-24"
-        } bg-[rgb(224,224,244)] min-h-screen h-full p-5 pt-8 relative duration-300`}
+        } bg-[rgb(224,224,244)] p-5 pt-8 duration-300 sticky top-0 flex flex-col min-h-screen`}
       >
         <FaChevronRight
           className={`absolute cursor-pointer -right-3 top-9 w-7 bg-white border-dark-purple
@@ -191,8 +190,11 @@ const SideBar = () => {
               </li>
             </Link>
 
-            <li
-              className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl `}
+            
+          </div>
+        </ul>
+          <li
+              className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-auto text-2xl `}
               onClick={handleSignout}
             >
               <FaSignOutAlt className="text-2xl" />
@@ -204,14 +206,9 @@ const SideBar = () => {
                 Sign Out
               </span>
             </li>
-          </div>
-        </ul>
+        <CreateComplaintModal isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}/>
       </div>
-      <CreateComplaintModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-    </div>
   );
 };
 
