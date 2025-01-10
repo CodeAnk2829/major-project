@@ -9,14 +9,17 @@ import {
   Select,
   Textarea,
   TextInput,
+  Toast,
   Tooltip,
 } from "flowbite-react";
 import React, { useState } from "react";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
-import 'react-circular-progressbar/dist/styles.css';
+import "react-circular-progressbar/dist/styles.css";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { BiSolidMessageSquareError } from "react-icons/bi";
+import { HiExclamation } from "react-icons/hi";
 
 const CreateComplaintModal = ({
   isOpen,
@@ -42,6 +45,7 @@ const CreateComplaintModal = ({
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
   const [createError, setCreateError] = useState(null);
+  const [tooltipError, setTooltipError] = useState(false);
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
@@ -71,9 +75,32 @@ const CreateComplaintModal = ({
     8: "Ragging",
   };
 
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      access: "PUBLIC",
+      location: "",
+      attachments: [],
+      tags: [],
+    });
+    setParentLocation("");
+    setChildLocation("");
+    setFile(null);
+    setImageUploadProgress(null);
+    setImageUploadError(null);
+    setCreateError(null);
+    setTooltipError(false);
+  };
+
+  const handleModalClose = () => {
+    resetForm();
+    onClose();
+  };
+
   // To get the ID for a tag
-  const getTagId = (tagName: string): number | undefined => tagMapping[tagName];
-  const tagsOptions = Object.keys(tagMapping);
+  // const getTagId = (tagName: string): number | undefined => tagMapping[tagName];
+  // const tagsOptions = Object.keys(tagMapping);
 
   const customThemeTi = {
     base: "flex",
@@ -213,6 +240,12 @@ const CreateComplaintModal = ({
   };
 
   const handleAccessChange = () => {
+    if (formData.tags.includes(8)) {
+      // Check if Ragging tag (id=8) is selected
+      setTooltipError(true);
+      setTimeout(() => setTooltipError(false), 3000); // Hide tooltip after 3 seconds
+      return;
+    }
     setFormData({
       ...formData,
       access: formData.access === "PRIVATE" ? "PUBLIC" : "PRIVATE",
@@ -221,8 +254,16 @@ const CreateComplaintModal = ({
 
   const handleTagSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedTagId = parseInt(e.target.value, 10); // Get tag ID
+
     if (!formData.tags.includes(selectedTagId)) {
-      setFormData({ ...formData, tags: [...formData.tags, selectedTagId] });
+      const updatedTags = [...formData.tags, selectedTagId];
+
+      if (updatedTags.includes(8)) {
+        //tagid for Ragging
+        setFormData({ ...formData, tags: updatedTags, access: "PRIVATE" });
+      } else {
+        setFormData({ ...formData, tags: updatedTags });
+      }
     }
   };
 
@@ -234,7 +275,7 @@ const CreateComplaintModal = ({
   };
 
   const removeImage = () => {
-    setFormData({ ...formData, attachments: []});
+    setFormData({ ...formData, attachments: [] });
     setFile(null);
   };
 
@@ -276,6 +317,18 @@ const CreateComplaintModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(formData);
+    if (!formData.title || !formData.description || !formData.location) {
+      setCreateError("Please fill all the fields");
+    }
+
+    if (formData.title.length < 3) {
+      setCreateError("Title must be at least 3 characters long");
+    }
+
+    if (formData.description.length < 3) {
+      setCreateError("Description must be at least 3 characters long");
+    }
     try {
       const res = await fetch("/api/v1/complaint/create", {
         method: "POST",
@@ -293,12 +346,12 @@ const CreateComplaintModal = ({
       }
       if (res.ok) {
         setCreateError(null);
+        resetForm();
         navigate("/");
         onClose();
       }
-
-      
     } catch (error) {
+      console.log(error);
       setCreateError("Error creating complaint. Try again later.");
     }
   };
@@ -306,7 +359,7 @@ const CreateComplaintModal = ({
   if (!isOpen) return null;
 
   return (
-    <Modal show={isOpen} size="5xl" onClose={onClose} popup>
+    <Modal show={isOpen} size="5xl" onClose={handleModalClose} popup>
       <Modal.Header />
       <Modal.Body>
         <form onSubmit={handleSubmit}>
@@ -372,6 +425,7 @@ const CreateComplaintModal = ({
                       value={childLocation}
                       onChange={handleChildChange}
                       required
+                      theme={customThemeSelect}
                     >
                       <option value="">Select Specific Location</option>
                       {Object.keys(locationData[parentLocation]).map(
@@ -384,12 +438,18 @@ const CreateComplaintModal = ({
                     </Select>
                   </div>
                 )}
-                {(parentLocation === "Hostel" || parentLocation === "Department") &&
+                {(parentLocation === "Hostel" ||
+                  parentLocation === "Department") &&
                   childLocation &&
                   locationData[parentLocation][childLocation] && (
                     <div>
                       <Label htmlFor="block" value="Block" />
-                      <Select id="block" onChange={handleBlockChange} required>
+                      <Select
+                        id="block"
+                        onChange={handleBlockChange}
+                        required
+                        theme={customThemeSelect}
+                      >
                         <option value="">Select Block</option>
                         {locationData[parentLocation][childLocation].map(
                           (block, index) => (
@@ -401,29 +461,27 @@ const CreateComplaintModal = ({
                       </Select>
                     </div>
                   )}
-                  {parentLocation === "Other" && (
-                <div>
-                  <Label htmlFor="childLocation" value="Specific Location" />
-                  <Select
-                    id="childLocation"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    required
-                  >
-                    <option value="">Select Specific Location</option>
-                    {locationData[parentLocation].map((location, index) => (
-                      <option key={index} value={location}>
-                        {location}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              )}
+                {parentLocation === "Other" && (
+                  <div>
+                    <Label htmlFor="childLocation" value="Specific Location" />
+                    <Select
+                      id="childLocation"
+                      value={formData.location}
+                      onChange={(e) =>
+                        setFormData({ ...formData, location: e.target.value })
+                      }
+                      required
+                    >
+                      <option value="">Select Specific Location</option>
+                      {locationData[parentLocation].map((location, index) => (
+                        <option key={index} value={location}>
+                          {location}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
               </div>
-
-              
 
               {/* Right Side - Tags */}
               <div className="flex-1">
@@ -489,7 +547,7 @@ const CreateComplaintModal = ({
                         text={`${imageUploadProgress || 0}%`}
                         className="text-[rgb(60,79,131)] "
                         styles={buildStyles({
-                          pathColor: '#3C4F83',
+                          pathColor: "#3C4F83",
                         })}
                       />
                     </div>
@@ -529,6 +587,15 @@ const CreateComplaintModal = ({
                 <Label htmlFor="access" className="text-sm">
                   Post Publicly
                 </Label>
+                {tooltipError && (
+                  <Toast>
+                  <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-500 dark:bg-orange-700 dark:text-orange-200">
+                    <HiExclamation className="h-5 w-5" />
+                  </div>
+                  <div className="ml-3 text-sm font-normal">Complaints with tags "Ragging" and "Personal Issues" cannot be posted publicly</div>
+                  <Toast.Toggle />
+                </Toast>
+                )}
                 <Tooltip
                   content="Public complaints are visible to all users"
                   arrow={false}
@@ -548,6 +615,7 @@ const CreateComplaintModal = ({
             Submit Complaint
           </Button>
         </form>
+        {createError && <Alert color="failure">{createError}</Alert>}
       </Modal.Body>
     </Modal>
   );
