@@ -26,10 +26,10 @@ router.post("/auth/signin", async (req, res) => {
         let user = null;
 
         if(parseData.data.email) {
-            user = await prisma.user.findFirst({
+            user = await prisma.user.findUnique({
                 where: {
                     email: parseData.data.email,
-                }, 
+                },
             });
         } else {
             user = await prisma.user.findFirst({
@@ -60,8 +60,6 @@ router.post("/auth/signin", async (req, res) => {
 
         // expires in 30 days
         res.cookie("token", token, { httpOnly: true, expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-
-        console.log(req.cookies);
 
         res.status(200).json({
             token: token,
