@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -24,14 +25,14 @@ model Complaint {
   id               String              @id @default(uuid())
   title            String
   description      String
-  access           String              @default("PUBLIC")
+  access           String              @default("PRIVATE")
   complaintDetails ComplaintDetail?
   feedbacks        Feedback[]
   notification     Notification[]
   tags             ComplaintCategory[]
   userId           String
   user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status           Status              @default(UNRESOLVED)
+  status           Status              @default(PENDING)
   attachments      Attachment[]
   createdAt        DateTime            @default(now())
   upvotes          Upvote[]
@@ -100,8 +101,9 @@ model Notification {
 model Resolver {
   id          String  @id @default(uuid())
   name        String
-  email       String?
+  email       String? @unique
   phoneNumber String
+  role        Role    @default(RESOLVER)
   occupation  String
 }
 

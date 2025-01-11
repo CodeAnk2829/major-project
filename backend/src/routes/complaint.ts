@@ -11,6 +11,7 @@ enum Role {
     STUDENT = "STUDENT",
 }
 
+// create a complaint
 router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const body = req.body; // { title: string, description: string, access: string, location: string, tags: int[], attachments: string[] }
@@ -95,12 +96,23 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
     }
 });
 
+// get all complaints
 router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const complaints = await prisma.complaint.findMany({
             where: {
                 access: "PUBLIC"
-            }
+            }, 
+            orderBy: {
+                createdAt: "desc" // get recent complaints first
+            },
+            include: {
+                _count: {
+                    select: {
+                        upvotes: true   
+                    },
+                } 
+            },
         });
 
         res.status(200).json({
@@ -115,12 +127,20 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
     }
 });
 
+// get complaint by id
 router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const complaintId = req.params.id;
         const complaint = await prisma.complaint.findUnique({
             where: {
                 id: complaintId
+            },
+            include: {
+                _count: {
+                    select: {
+                        upvotes: true
+                    }
+                }
             }
         });
 
@@ -136,6 +156,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
     }
 });
 
+// get an user's complaints
 router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const userId = req.params.id;
@@ -149,6 +170,9 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
         const complaints = await prisma.complaint.findMany({
             where: {
                 userId
+            }, 
+            orderBy: {
+                createdAt: "desc" // get recent complaints first
             }
         });
 
@@ -165,6 +189,65 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while fetching complaints"
         });
+    }
+});
+
+// upvote a complaint
+router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const complaintId = req.params.id;
+        const userId = req.user.id;
+
+        // first check an user has already upvoted
+        const isUpvoted = await prisma.upvote.findUnique({
+            where: { userId },
+            select: { id: true }
+        });
+
+        if(!isUpvoted) {
+            const addUpvote = await prisma.upvote.create({
+                data: {
+                    userId,
+                    complaintId
+                }
+            });
+
+            if(!addUpvote) {
+                throw new Error("Could not upvote. Please try again");
+            }
+        } else {
+            const removeUpvote = await prisma.upvote.delete({
+                where: { userId }
+            });
+
+            if(!removeUpvote) {
+                throw new Error("Could not remove upvote. Please try again");
+            }
+        }
+
+        // count total upvotes for a complaint
+        const totalUpvotes = await prisma.upvote.aggregate({
+            _count: {
+                id: true
+            },
+            where: {
+                complaintId
+            }
+        });
+
+        if(!totalUpvotes) {
+            throw new Error("Could not count total upvotes for the complaint");
+        }
+
+        res.status(200).json({
+            ok: true,
+            totalUpvotes
+        });
+    } catch (err) {
+        res.json(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while voting"
+        })
     }
 });
 
