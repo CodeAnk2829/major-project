@@ -5,6 +5,7 @@ import SignUp from './pages/SignUp'
 import PrivateRoute from './components/PrivateRoute'
 import OnlyIssueInchargePrivateRoute from './components/OnlyIssueInchargePrivateRoute'
 import OnlyAdminPrivateRoute from './components/OnlyAdminPrivateRoute'
+import Profile from './pages/Profile'
 
 function App() {
 
@@ -17,6 +18,7 @@ function App() {
         {/* Private Routes */}
         <Route element={<PrivateRoute />}>
           <Route path='/' element={<Home/>}/>
+          <Route path='/profile' element={<Profile/>}/>
         </Route>
 
         {/* Issue Incharge Routes */} 
