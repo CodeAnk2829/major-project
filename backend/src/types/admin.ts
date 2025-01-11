@@ -5,7 +5,7 @@ enum Role {
     RESOLVER = "RESOLVER",
 }
 
-export const AssignmentSchema = z.object({
+export const InchargeSchema = z.object({
     name: z.string().min(3),
     email: z.string().email(),
     phoneNumber: z.string().min(10).max(10),
@@ -20,7 +20,16 @@ export const RemoveSchema = z.object({
     userId: z.string()
 });
 
-export const UpdateSchema = z.object({
+export const ResolverSchema = z.object({
+    name: z.string().min(3),
+    email: z.string().email(),
+    phoneNumber: z.string().min(10).max(10),
+    role: z.nativeEnum(Role),
+    location: z.string().min(3),
+    occupation: z.string().min(3),
+});
+
+export const UpdateInchargeSchema = z.object({
     name: z.string().min(3),
     email: z.string().email(),
     phoneNumber: z.string().min(10).max(10),

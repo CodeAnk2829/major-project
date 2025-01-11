@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
-import { AssignmentSchema, RemoveSchema, UpdateSchema } from "../types/admin";
+import { InchargeSchema, RemoveSchema, UpdateInchargeSchema } from "../types/admin";
 import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 import { parse } from "dotenv";
 
@@ -15,7 +15,7 @@ enum Role {
 router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, designation: String, rank: Number }
-        const parseData = AssignmentSchema.safeParse(body);
+        const parseData = InchargeSchema.safeParse(body);
 
         if(!parseData.success) {
             throw new Error("Invalid Inputs");
@@ -102,6 +102,16 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
     }
 });
 
+router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while assigning resolver. Please try again."
+        });
+    }
+});
 router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const inchargeId = req.params.id;
@@ -195,7 +205,7 @@ router.put("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), as
     try {
         const inchargeId = req.params.id;
         const body = req.body; // { name: string, email: string, phoneNumber: string, password: string, location: string, designation: string, rank: number }
-        const parseData = UpdateSchema.safeParse(body);
+        const parseData = UpdateInchargeSchema.safeParse(body);
 
         if(!parseData.success) {
             throw new Error("Invalid inputs");
