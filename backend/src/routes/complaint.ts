@@ -1,5 +1,5 @@
 import Router from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { CreateComplaintSchema } from "../types/complaint";
 import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 
@@ -14,7 +14,7 @@ enum Role {
 // create a complaint
 router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
-        const body = req.body; // { title: string, description: string, access: string, location: string, tags: int[], attachments: string[] }
+        const body = req.body; // { title: string, description: string, access: string, postAsAnonymous: boolean, location: string, tags: int[], attachments: string[] }
         const parseData = CreateComplaintSchema.safeParse(body);
 
         if (!parseData.success) {
@@ -54,11 +54,13 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
             throw new Error("No incharge found for the given location");
         }
 
+        
         const createComplaint = await prisma.complaint.create({
             data: {
                 title: parseData.data.title,
                 description: parseData.data.description,
                 access: parseData.data.access,
+                postAsAnonymous: parseData.data.postAsAnonymous,
                 complaintDetails: {
                     create: {
                         assignedTo: issueIncharge.inchargeId,
@@ -72,6 +74,47 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
                 attachments: {
                     create: attachmentsData
                 },
+            },
+            include: {
+                attachments: {
+                  select: {
+                    id: true,
+                    imageUrl: true
+                  }  
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        designation: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -79,14 +122,39 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
             throw new Error("Could not create complaint. Please try again");
         }
 
+        const tagNames = createComplaint.tags.map(tag => tag.tags.tagName);
+        const attachments = createComplaint.attachments.map(attachment => attachment.imageUrl);
+
+        let complaintResponse = createComplaint;
+
+        if (createComplaint.postAsAnonymous) {
+            complaintResponse = {
+                ...createComplaint,
+                user: {
+                    id: createComplaint.user.id,
+                    name: "Anonymous",
+                }
+            }
+        }
+
         res.status(201).json({
             ok: true,
             message: "Complaint created successfully",
-            complaintId: createComplaint.id,
-            status: createComplaint.status,
-            assignedTo: issueIncharge.inchargeId,
-            location: parseData.data.location,
-            createdAt: createComplaint.createdAt
+            complaintId: complaintResponse.id,
+            title: complaintResponse.title,
+            description: complaintResponse.description,
+            userName: complaintResponse.user.name,
+            userId: complaintResponse.user.id,
+            status: complaintResponse.status,
+            inchargeId: issueIncharge.inchargeId,
+            inchargeName: complaintResponse.complaintDetails?.user.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            location: parseData.data.location, 
+            upvotes: complaintResponse.complaintDetails?.upvotes,
+            actionTaken: complaintResponse.complaintDetails?.actionTaken,
+            attachments: attachments,
+            tags: tagNames,
+            createdAt: complaintResponse.createdAt
         });
     } catch (err) {
         res.status(400).json({
@@ -107,18 +175,66 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                 createdAt: "desc" // get recent complaints first
             },
             include: {
-                _count: {
+                attachments: {
                     select: {
-                        upvotes: true   
-                    },
-                } 
-            },
+                        id: true,
+                        imageUrl: true
+                    }
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        designation: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        let complaintResponse: any = [];
+        complaints.forEach((complaint: any) => {
+            if (complaint.postAsAnonymous) {
+                complaintResponse.push({
+                    ...complaint,
+                    user: {
+                        id: complaint.user.id,
+                        name: "Anonymous",
+                    }
+                });
+            }
         });
 
         res.status(200).json({
             ok: true,
-            complaints
+            complaintResponse
         });
+
     } catch (err) {
         res.status(400).json({
             ok: false,
@@ -136,17 +252,98 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                 id: complaintId
             },
             include: {
-                _count: {
+                attachments: {
                     select: {
-                        upvotes: true
+                        id: true,
+                        imageUrl: true
+                    }
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        location: {
+                                            select: {
+                                                location: true,
+                                                locationName: true,
+                                                locationBlock: true
+                                            }
+                                        },
+                                        designation: true,
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         });
 
-        res.status(200).json({
+        // TODO: send attachments, user-details based on anonymity, tags
+
+        if(!complaint) {
+            throw new Error("Could not fetch the required complaint");
+        }
+
+        const tagNames = complaint.tags.map(tag => tag.tags.tagName);
+        const attachments = complaint.attachments.map(attachment => attachment.imageUrl);
+
+        let complaintResponse = complaint;
+
+        if (complaint.postAsAnonymous) {
+            complaintResponse = {
+                ...complaint,
+                user: {
+                    id: complaint.user.id,
+                    name: "Anonymous",
+                }
+            }
+        }
+
+        const location = complaintResponse.complaintDetails?.user.issueIncharge?.location.location;
+        const locationName = complaintResponse.complaintDetails?.user.issueIncharge?.location.locationName;
+        const locationBlock = complaintResponse.complaintDetails?.user.issueIncharge?.location.locationBlock;
+
+        res.status(201).json({
             ok: true,
-            complaint
+            message: "Complaint created successfully",
+            complaintId: complaintResponse.id,
+            title: complaintResponse.title,
+            description: complaintResponse.description,
+            userName: complaintResponse.user.name,
+            userId: complaintResponse.user.id,
+            status: complaintResponse.status,
+            inchargeId: complaintResponse.complaintDetails?.user.id,
+            inchargeName: complaintResponse.complaintDetails?.user.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            location: `${location}-${locationName}-${locationBlock}`,
+            upvotes: complaintResponse.complaintDetails?.upvotes,
+            actionTaken: complaintResponse.complaintDetails?.actionTaken,
+            attachments: attachments,
+            tags: tagNames,
+            createdAt: complaintResponse.createdAt
         });
     } catch (err) {
         res.status(400).json({
@@ -173,12 +370,55 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
             }, 
             orderBy: {
                 createdAt: "desc" // get recent complaints first
+            },
+            include: {
+                attachments: {
+                    select: {
+                        id: true,
+                        imageUrl: true
+                    }
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        designation: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         });
 
         if(!complaints) {
             throw new Error("No complaints found for the given user");
         }
+
+        // TODO: send attachments, user-details based on anonymity, tags
 
         res.status(200).json({
             ok: true,
@@ -198,23 +438,28 @@ router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req
         const complaintId = req.params.id;
         const userId = req.user.id;
 
+        if(!userId) {
+            throw new Error("Unauthorized");
+        }
+
         // first check an user has already upvoted
         const isUpvoted = await prisma.upvote.findUnique({
-            where: { userId },
+            where: { userId, complaintId },
             select: { id: true }
         });
 
+        let finalAction: any;
+        
         if(!isUpvoted) {
             const addUpvote = await prisma.upvote.create({
-                data: {
-                    userId,
-                    complaintId
-                }
+                data: { userId, complaintId },
             });
 
             if(!addUpvote) {
                 throw new Error("Could not upvote. Please try again");
             }
+    
+            finalAction = { increment: 1 };
         } else {
             const removeUpvote = await prisma.upvote.delete({
                 where: { userId }
@@ -223,15 +468,18 @@ router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req
             if(!removeUpvote) {
                 throw new Error("Could not remove upvote. Please try again");
             }
+        
+            finalAction = { decrement: 1 };
         }
 
         // count total upvotes for a complaint
-        const totalUpvotes = await prisma.upvote.aggregate({
-            _count: {
-                id: true
+        const totalUpvotes = await prisma.complaintDetail.update({
+            where: { complaintId },
+            data: {
+                upvotes: finalAction
             },
-            where: {
-                complaintId
+            select: {
+                upvotes: true
             }
         });
 
@@ -241,14 +489,17 @@ router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req
 
         res.status(200).json({
             ok: true,
-            totalUpvotes
+            upvotes: totalUpvotes.upvotes,
+            isUpvoted: isUpvoted ? false : true
         });
     } catch (err) {
         res.json(400).json({
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while voting"
-        })
+        });
     }
 });
+
+
 
 export const complaintRouter = router;
