@@ -52,7 +52,7 @@ function SignIn() {
       }
       if (res.ok) {
         dispatch(signInSuccess(data));
-        navigate('/');
+        navigate("/role-redirect");
       }
     } catch (error: any) {
       dispatch(signInFailure(error.message));
