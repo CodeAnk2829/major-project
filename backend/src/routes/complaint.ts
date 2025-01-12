@@ -264,6 +264,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                     select: {
                         tags: {
                             select: {
+                                id: true,
                                 tagName: true
                             }
                         }
@@ -303,14 +304,9 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             }
         });
 
-        // TODO: send attachments, user-details based on anonymity, tags
-
         if(!complaint) {
             throw new Error("Could not fetch the required complaint");
         }
-
-        const tagNames = complaint.tags.map(tag => tag.tags.tagName);
-        const attachments = complaint.attachments.map(attachment => attachment.imageUrl);
 
         let complaintResponse = complaint;
 
@@ -343,8 +339,8 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             location: `${location}-${locationName}-${locationBlock}`,
             upvotes: complaintResponse.complaintDetails?.upvotes,
             actionTaken: complaintResponse.complaintDetails?.actionTaken,
-            attachments: attachments,
-            tags: tagNames,
+            attachments: complaintResponse.attachments,
+            tags: complaintResponse.tags,
             createdAt: complaintResponse.createdAt
         });
     } catch (err) {
@@ -502,6 +498,206 @@ router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req
     }
 });
 
+// update a complaint
+router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const body = req.body; // { title: string, description: string, access: string, postAsAnonymous: boolean, location: string, tags: int[], attachments: string[] }
+        const parseData = CreateComplaintSchema.safeParse(body);
+        const complaintId = req.params.id;
+        const currentUserId = req.user.id;
 
+        if (!parseData.success) {
+            throw new Error("Invalid Inputs");
+        }
+
+        const doesComplaintBelongToLoggedInUser = await prisma.complaint.findUnique({
+            where: { id: complaintId },
+            select: {
+                userId: true,
+                complaintDetails: {
+                    select: {
+                        user: {
+                            select: {
+                                issueIncharge: {
+                                    select: {
+                                        location: {
+                                            select: {
+                                                location: true, 
+                                                locationName: true,
+                                                locationBlock: true,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        if(!doesComplaintBelongToLoggedInUser) {
+            throw new Error("No complaint exist with this given id");
+        }
+        
+        // check whether the complaintId belongs to the current user
+        if(doesComplaintBelongToLoggedInUser.userId !== currentUserId) {
+            throw new Error("Access Denied. You do not have permissions to make changes for this complaint.");
+        }
+        
+        const currentLocationDetails = doesComplaintBelongToLoggedInUser.complaintDetails?.user.issueIncharge?.location;
+        const currentLocation = `${currentLocationDetails?.location}-${currentLocationDetails?.locationName}-${currentLocationDetails?.locationBlock}`
+
+        let tagData: any[] = [];
+        let attachmentsData: any[] = [];
+        
+        parseData.data.tags.forEach(id => {
+            tagData.push({ tagId: Number(id) });
+        });
+
+        parseData.data.attachments.forEach(url => {
+            attachmentsData.push({ imageUrl: url });
+        });
+        
+        let dataToUpdate: any = {
+            title: parseData.data.title,
+            description: parseData.data.description,
+            access: parseData.data.access,
+            postAsAnonymous: parseData.data.postAsAnonymous,
+            tags: {
+                deleteMany: [{ complaintId }], // delete existing tags 
+                create: tagData // then create new tags which is given by the user
+            },
+            attachments: {
+                deleteMany: [{ complaintId }], // same as tags
+                create: attachmentsData
+            },
+        }
+
+        // check whether location is same 
+        if(currentLocation !== parseData.data.location) {
+            const location = parseData.data.location.split("-")[0];
+            const locationName = parseData.data.location.split("-")[1];
+            const locationBlock = parseData.data.location.split("-")[2];
+            
+            // find the least ranked incharge of the hostel of the given location
+            const issueIncharge = await prisma.issueIncharge.findFirst({
+                where: {
+                    location: { location, locationName, locationBlock }
+                },
+                orderBy: {
+                    rank: "desc"
+                },
+                select: {
+                    inchargeId: true,
+                    locationId: true
+                }
+            });
+
+            if (!issueIncharge) {
+                throw new Error("No incharge found for the given location");
+            }
+
+            dataToUpdate = { 
+                ...dataToUpdate,
+                complaintDetails: {
+                    update: {
+                        assignedTo: issueIncharge.inchargeId,
+                    }
+                },
+            }
+        }
+
+        const updateComplaint = await prisma.complaint.update({
+            where: { id: complaintId },
+            data: dataToUpdate,
+            include: {
+                attachments: {
+                    select: {
+                        id: true,
+                        imageUrl: true
+                    }
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        designation: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!updateComplaint) {
+            throw new Error("Could not create complaint. Please try again");
+        }
+
+        const tagNames = updateComplaint.tags.map(tag => tag.tags.tagName);
+        const attachments = updateComplaint.attachments.map(attachment => attachment.imageUrl);
+
+        let complaintResponse = updateComplaint;
+
+        if (updateComplaint.postAsAnonymous) {
+            complaintResponse = {
+                ...updateComplaint,
+                user: {
+                    id: updateComplaint.user.id,
+                    name: "Anonymous",
+                }
+            }
+        }
+
+        res.status(201).json({
+            ok: true,
+            message: "Complaint updated successfully",
+            complaintId: complaintResponse.id,
+            title: complaintResponse.title,
+            description: complaintResponse.description,
+            userName: complaintResponse.user.name,
+            userId: complaintResponse.user.id,
+            status: complaintResponse.status,
+            inchargeId: complaintResponse.complaintDetails?.user.id,
+            inchargeName: complaintResponse.complaintDetails?.user.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            location: parseData.data.location,
+            upvotes: complaintResponse.complaintDetails?.upvotes,
+            actionTaken: complaintResponse.complaintDetails?.actionTaken,
+            attachments: attachments,
+            tags: tagNames,
+            createdAt: complaintResponse.createdAt
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while updating the complaint"
+        });
+    }
+});
 
 export const complaintRouter = router;
