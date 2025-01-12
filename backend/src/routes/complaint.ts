@@ -227,6 +227,8 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                         name: "Anonymous",
                     }
                 });
+            } else {
+                complaintResponse.push(complaint);
             }
         });
 
