@@ -112,6 +112,7 @@ router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async
         });
     }
 });
+
 router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const inchargeId = req.params.id;
@@ -146,6 +147,7 @@ router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async
             }
         });
 
+        // todo: how many complaints has been assigned to this incharge
         if(!inchargeDetails) {
             throw new Error("Could not fetch incharge details. Please try again.");
         }
@@ -423,7 +425,7 @@ router.delete("/remove/locations", authMiddleware, authorizeMiddleware(Role), as
     }
 });
 
-router.get("/get/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.get("/get/tags", async (req, res) => {
     try {
         const tags = await prisma.tag.findMany({});
 
@@ -444,7 +446,7 @@ router.get("/get/tags", authMiddleware, authorizeMiddleware(Role), async (req, r
     }
 });
 
-router.get("/get/locations", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.get("/get/locations", async (req, res) => {
     try {
         const locations = await prisma.location.findMany({});
 

@@ -133,4 +133,6 @@ router.post("/auth/signup", async (req, res) => {
     }
 });
 
+// create sign out endpoint
+
 export const userRouter = router;

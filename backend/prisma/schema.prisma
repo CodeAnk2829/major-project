@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["relationJoins"]
 }
 
@@ -26,6 +26,7 @@ model Complaint {
   title            String
   description      String
   access           String              @default("PRIVATE")
+  postAsAnonymous  Boolean             @default(false)
   complaintDetails ComplaintDetail?
   feedbacks        Feedback[]
   notification     Notification[]
@@ -54,6 +55,7 @@ model ComplaintDetail {
   complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   assignedTo  String
   user        User      @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
+  upvotes     Int       @default(0)
   actionTaken Boolean   @default(false)
   resolvedAt  DateTime  @updatedAt
 }
@@ -81,8 +83,8 @@ model IssueIncharge {
 model Location {
   id            Int             @id @default(autoincrement())
   location      String
-  locationName  String
-  locationBlock String
+  locationName  String?
+  locationBlock String?
   IssueIncharge IssueIncharge[]
 
   @@unique([locationName, locationBlock])
