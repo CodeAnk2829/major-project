@@ -149,6 +149,7 @@ enum Role {
 }
 
 enum Status {
+  ASSIGNED
   RESOLVED
   PENDING
   UNRESOLVED

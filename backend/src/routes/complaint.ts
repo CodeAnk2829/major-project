@@ -514,6 +514,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             where: { id: complaintId },
             select: {
                 userId: true,
+                status: true,
                 complaintDetails: {
                     select: {
                         user: {
@@ -540,6 +541,11 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             throw new Error("No complaint exist with this given id");
         }
         
+        // if status is pending then don't let an user to update the complaint details
+        if(doesComplaintBelongToLoggedInUser.status !== "PENDING") {
+            throw new Error("Complaint is already picked up. You cannot update the complaint details");
+        }
+
         // check whether the complaintId belongs to the current user
         if(doesComplaintBelongToLoggedInUser.userId !== currentUserId) {
             throw new Error("Access Denied. You do not have permissions to make changes for this complaint.");
@@ -700,4 +706,45 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
     }
 });
 
+// delete a complaint
+router.delete("/delete/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const complaintId = req.params.id;
+        const currentUserId = req.user.id;
+
+        // check if current user is the one who created this complaint
+        const doesComplaintBelongToLoggedInUser = await prisma.complaint.findUnique({
+            where: { id: complaintId },
+            select: { userId: true }
+        });
+
+        if(!doesComplaintBelongToLoggedInUser) {
+            throw new Error("No complaint exist with this given id");
+        }
+
+        if(doesComplaintBelongToLoggedInUser.userId !== currentUserId) {
+            throw new Error("Access Denied. You do not have permissions to make changes.")
+        }
+
+        const deletedComplaint = await prisma.complaint.delete({
+            where: { id: complaintId },
+            select: { id: true }
+        });
+
+        if(!deletedComplaint) {
+            throw new Error("Could not delete complaint. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            message: "Complaint deleted successfully.",
+            complaintId
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while deleting the complaint."
+        });
+    }
+});
 export const complaintRouter = router;
