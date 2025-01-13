@@ -167,6 +167,12 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
 // get all complaints
 router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
+
+        if(!userId) {
+            throw new Error("Unauthorized");
+        }
+
         const complaints = await prisma.complaint.findMany({
             where: {
                 access: "PUBLIC"
@@ -217,6 +223,10 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             }
         });
 
+        if(!complaints) {
+            throw new Error("An error occurred while fetching complaints");
+        }
+
         let complaintResponse: any = [];
         complaints.forEach((complaint: any) => {
             if (complaint.postAsAnonymous) {
@@ -232,9 +242,20 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             }
         });
 
+        // all upvoted complaints by the currently logged in user
+        const upvotedComplaints = await prisma.upvote.findMany({
+            where: {
+                userId
+            },
+            select: {
+                complaintId: true
+            }
+        });
+
         res.status(200).json({
             ok: true,
-            complaintResponse
+            complaintResponse,
+            upvotedComplaints
         });
 
     } catch (err) {
@@ -248,7 +269,13 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
 // get complaint by id
 router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
+        const userId = req.user.id;
         const complaintId = req.params.id;
+
+        if(!userId) {
+            throw new Error("Unauthorized");
+        }
+
         const complaint = await prisma.complaint.findUnique({
             where: {
                 id: complaintId
@@ -308,6 +335,17 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             throw new Error("Could not fetch the required complaint");
         }
 
+        const upvote = await prisma.upvote.findUnique({
+            where: { userId, complaintId },
+            select: { id: true }
+        });
+
+        let hasUpvoted: boolean = false;
+
+        if(upvote) {
+            hasUpvoted = true;
+        }
+
         let complaintResponse = complaint;
 
         if (complaint.postAsAnonymous) {
@@ -332,6 +370,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             description: complaintResponse.description,
             userName: complaintResponse.user.name,
             userId: complaintResponse.user.id,
+            hasUpvoted,
             status: complaintResponse.status,
             inchargeId: complaintResponse.complaintDetails?.user.id,
             inchargeName: complaintResponse.complaintDetails?.user.name,
@@ -341,7 +380,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             actionTaken: complaintResponse.complaintDetails?.actionTaken,
             attachments: complaintResponse.attachments,
             tags: complaintResponse.tags,
-            createdAt: complaintResponse.createdAt
+            createdAt: complaintResponse.createdAt,
         });
     } catch (err) {
         res.status(400).json({
@@ -416,11 +455,20 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
             throw new Error("No complaints found for the given user");
         }
 
-        // TODO: send attachments, user-details based on anonymity, tags
+        // get all upvoted complaints by this user
+        const upvotedComplaints = await prisma.upvote.findMany({
+            where: {
+                userId
+            },
+            select: {
+                complaintId: true
+            }
+        });
 
         res.status(200).json({
             ok: true,
-            complaints
+            complaints,
+            upvotedComplaints,
         });
     } catch (err) {
         res.status(400).json({
@@ -664,6 +712,18 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             throw new Error("Could not create complaint. Please try again");
         }
 
+        // check whether this user has upvoted this complaint
+        let hasUpvoted: boolean = false;
+
+        const upvote = await prisma.upvote.findUnique({
+            where: { userId: currentUserId, complaintId},
+            select: { id: true }
+        });
+
+        if(upvote) {
+            hasUpvoted = true;
+        }
+
         const tagNames = updateComplaint.tags.map(tag => tag.tags.tagName);
         const attachments = updateComplaint.attachments.map(attachment => attachment.imageUrl);
 
@@ -687,6 +747,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             description: complaintResponse.description,
             userName: complaintResponse.user.name,
             userId: complaintResponse.user.id,
+            hasUpvoted,
             status: complaintResponse.status,
             inchargeId: complaintResponse.complaintDetails?.user.id,
             inchargeName: complaintResponse.complaintDetails?.user.name,
