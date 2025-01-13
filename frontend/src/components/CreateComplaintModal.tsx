@@ -18,7 +18,6 @@ import "react-circular-progressbar/dist/styles.css";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { BiSolidMessageSquareError } from "react-icons/bi";
 import { HiExclamation } from "react-icons/hi";
 
 const CreateComplaintModal = ({
@@ -37,6 +36,7 @@ const CreateComplaintModal = ({
     location: "",
     attachments: [],
     tags: [],
+    postAsAnonymous: false,
   });
 
   const [parentLocation, setParentLocation] = useState("");
@@ -49,6 +49,7 @@ const CreateComplaintModal = ({
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
+  //TODO: Handle these from the backend
   const locationData = {
     Hostel: {
       10: ["A", "B", "C"], // Hostel 10 has blocks A, B, C
@@ -64,6 +65,7 @@ const CreateComplaintModal = ({
     Other: ["Sports Complex", "Library", "Bus Services", "Ragging", "Other"],
   };
 
+  //TODO: Handle from backend
   const tagMapping = {
     1: "Hostel",
     2: "Mess",
@@ -71,8 +73,22 @@ const CreateComplaintModal = ({
     4: "Cleaning",
     5: "Sports",
     6: "Bus Services",
-    7: "Others",
     8: "Ragging",
+    9: "Gym",
+    10: "Library",
+    11: "Internet",
+    12: "Wi-Fi",
+    13: "LAN",
+    14: "Electricity",
+    15: "Equipment",
+    16: "Carpentry",
+    17: "Dispensary",
+    18: "Ambulance",
+    19: "Medical Services",
+    20: "Canteen",
+    21: "Labs",
+    22: "Personal Issue",
+    23: "Others",
   };
 
   const resetForm = () => {
@@ -83,6 +99,7 @@ const CreateComplaintModal = ({
       location: "",
       attachments: [],
       tags: [],
+      postAsAnonymous: false,
     });
     setParentLocation("");
     setChildLocation("");
@@ -97,10 +114,6 @@ const CreateComplaintModal = ({
     resetForm();
     onClose();
   };
-
-  // To get the ID for a tag
-  // const getTagId = (tagName: string): number | undefined => tagMapping[tagName];
-  // const tagsOptions = Object.keys(tagMapping);
 
   const customThemeTi = {
     base: "flex",
@@ -240,8 +253,8 @@ const CreateComplaintModal = ({
   };
 
   const handleAccessChange = () => {
-    if (formData.tags.includes(8)) {
-      // Check if Ragging tag (id=8) is selected
+    if (formData.tags.includes(8) || formData.tags.includes(22)) {
+      // Check if Ragging tag (id=8) is selected or Personal Issue (id=22)
       setTooltipError(true);
       setTimeout(() => setTooltipError(false), 3000); // Hide tooltip after 3 seconds
       return;
@@ -258,20 +271,13 @@ const CreateComplaintModal = ({
     if (!formData.tags.includes(selectedTagId)) {
       const updatedTags = [...formData.tags, selectedTagId];
 
-      if (updatedTags.includes(8)) {
-        //tagid for Ragging
+      if (updatedTags.includes(8) || updatedTags.includes(22)) {
+        //tagid for Ragging and personal issue
         setFormData({ ...formData, tags: updatedTags, access: "PRIVATE" });
       } else {
         setFormData({ ...formData, tags: updatedTags });
       }
     }
-  };
-
-  const removeTag = (tag: number) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter((t) => t !== tagId),
-    });
   };
 
   const removeImage = () => {
@@ -281,34 +287,44 @@ const CreateComplaintModal = ({
 
   const handleUploadImage = async () => {
     try {
-      if (!file) {
-        setImageUploadError("Please select an image");
+      if (!file || file.length === 0) {
+        setImageUploadError("Please select at least one image");
         return;
       }
 
-      const data = new FormData();
       const upload_preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
       const cloud_name = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      data.append("file", file);
-      data.append("upload_preset", upload_preset);
-      data.append("cloud_name", cloud_name);
 
-      const res = await axios.post(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
-        data,
-        {
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round(
-              (progressEvent.loaded / progressEvent.total) * 100
-            );
-            setImageUploadProgress(progress);
-          },
-        }
-      );
-      const uploadedImageUrl = res.data.url;
+      const uploadedUrls = [];
+      for (const selectedFile of file) {
+        const data = new FormData();
+        data.append("file", selectedFile);
+        data.append("upload_preset", upload_preset);
+        data.append("cloud_name", cloud_name);
+
+        const res = await axios.post(
+          `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
+          data,
+          {
+            onUploadProgress: (progressEvent) => {
+              const progress = Math.round(
+                (progressEvent.loaded / progressEvent.total) * 100
+              );
+              setImageUploadProgress(progress);
+            },
+          }
+        );
+
+        const uploadedImageUrl = res.data.url;
+        uploadedUrls.push(uploadedImageUrl);
+      }
+
+      setFormData({
+        ...formData,
+        attachments: [...formData.attachments, ...uploadedUrls],
+      });
       setImageUploadProgress(null);
       setImageUploadError(null);
-      setFormData({ ...formData, attachments: [uploadedImageUrl] });
     } catch (error) {
       setImageUploadError("Image upload failed");
       setImageUploadProgress(null);
@@ -529,7 +545,8 @@ const CreateComplaintModal = ({
                 <FileInput
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setFile(e.target.files[0])}
+                  multiple
+                  onChange={(e) => setFile(e.target.files)}
                   className="border-gray-300 bg-gray-50 text-gray-900 focus:border-[rgb(60,79,131)] focus:ring-[rgb(60,79,131)]"
                 />
                 <Button
@@ -559,20 +576,31 @@ const CreateComplaintModal = ({
               {imageUploadError && (
                 <Alert color="failure">{imageUploadError}</Alert>
               )}
-              {formData.attachments.length !== 0 && (
-                <div className="relative">
-                  <img
-                    src={formData.attachments[0]}
-                    alt="upload"
-                    className="w-full h-64 object-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-gray-200 text-slate-600 p-1 rounded-full"
-                  >
-                    <IoClose />
-                  </button>
+              {formData.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-4 mt-4">
+                  {formData.attachments.map((attachment, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={attachment}
+                        alt={`Uploaded ${index + 1}`}
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            attachments: formData.attachments.filter(
+                              (_, i) => i !== index
+                            ),
+                          })
+                        }
+                        className="absolute top-1 right-1 bg-gray-200 text-slate-600 p-1 rounded-full"
+                      >
+                        <IoClose />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -589,12 +617,15 @@ const CreateComplaintModal = ({
                 </Label>
                 {tooltipError && (
                   <Toast>
-                  <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-500 dark:bg-orange-700 dark:text-orange-200">
-                    <HiExclamation className="h-5 w-5" />
-                  </div>
-                  <div className="ml-3 text-sm font-normal">Complaints with tags "Ragging" and "Personal Issues" cannot be posted publicly</div>
-                  <Toast.Toggle />
-                </Toast>
+                    <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-500 dark:bg-orange-700 dark:text-orange-200">
+                      <HiExclamation className="h-5 w-5" />
+                    </div>
+                    <div className="ml-3 text-sm font-normal">
+                      Complaints with tags "Ragging" and "Personal Issues"
+                      cannot be posted publicly
+                    </div>
+                    <Toast.Toggle />
+                  </Toast>
                 )}
                 <Tooltip
                   content="Public complaints are visible to all users"
@@ -606,6 +637,29 @@ const CreateComplaintModal = ({
                   <IoInformationCircleOutline />
                 </Tooltip>
               </div>
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <Checkbox
+                id="anonymous"
+                checked={formData.postAsAnonymous}
+                onChange={() =>
+                  setFormData({
+                    ...formData,
+                    postAsAnonymous: !formData.postAsAnonymous,
+                  })
+                }
+                className="text-2xl text-[rgb(60,79,131)] focus:ring-[rgb(60,79,131)]"
+              />
+              <Label htmlFor="anonymous">Submit Anonymously</Label>
+              <Tooltip
+                content="Your username will be hidden from other users"
+                arrow={false}
+                placement="right"
+                animation="duration-500"
+                className="bg-[rgb(224,224,244)] text-slate-800"
+              >
+                <IoInformationCircleOutline />
+              </Tooltip>
             </div>
           </div>
           <Button
