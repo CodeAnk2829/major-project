@@ -24,6 +24,7 @@ export const ResolverSchema = z.object({
     name: z.string().min(3),
     email: z.string().email(),
     phoneNumber: z.string().min(10).max(10),
+    password: z.string().min(6),
     role: z.nativeEnum(Role),
     location: z.string().min(3),
     occupation: z.string().min(3),

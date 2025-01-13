@@ -53,8 +53,10 @@ model ComplaintDetail {
   id          String    @id @default(uuid())
   complaintId String    @unique
   complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  assignedTo  String
-  user        User      @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
+  pickedBy    String    
+  incharge    User      @relation(name: "Incharge", fields: [pickedBy], references: [id], onDelete: Cascade)
+  assignedTo  String? // keep it optional
+  resolver    User?     @relation(name: "Resolver", fields: [assignedTo], references: [id], onDelete: Cascade)
   upvotes     Int       @default(0)
   actionTaken Boolean   @default(false)
   resolvedAt  DateTime  @updatedAt
@@ -86,8 +88,9 @@ model Location {
   locationName  String?
   locationBlock String?
   IssueIncharge IssueIncharge[]
+  Resolver      Resolver[]
 
-  @@unique([locationName, locationBlock])
+  @@unique([location, locationName, locationBlock])
 }
 
 model Notification {
@@ -101,12 +104,12 @@ model Notification {
 }
 
 model Resolver {
-  id          String  @id @default(uuid())
-  name        String
-  email       String? @unique
-  phoneNumber String
-  role        Role    @default(RESOLVER)
-  occupation  String
+  id         String   @id @default(uuid())
+  resolverId String   @unique
+  resolver   User     @relation(fields: [resolverId], references: [id], onDelete: Cascade)
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+  occupation String
 }
 
 model Tag {
@@ -116,18 +119,20 @@ model Tag {
 }
 
 model User {
-  id               String            @id @default(uuid())
-  name             String
-  email            String            @unique
-  phoneNumber      String
-  password         String
-  role             Role              @default(STUDENT)
-  complaints       Complaint[]
-  complaintDetails ComplaintDetail[]
-  issueIncharge    IssueIncharge?
-  notifications    Notification[]
-  upvote           Upvote?
-  createdAt        DateTime          @default(now())
+  id                 String            @id @default(uuid())
+  name               String
+  email              String            @unique
+  phoneNumber        String            @unique
+  password           String
+  role               Role              @default(STUDENT)
+  complaints         Complaint[]
+  inchargesComplaint ComplaintDetail[] @relation(name: "Incharge") // this means that this field matches to the 'Incharge' relation in the ComplaintDetail table
+  resolversComplaint ComplaintDetail[] @relation(name: "Resolver") // this means that this field matches to the 'Resolver' relation in the ComplaintDetail table
+  issueIncharge      IssueIncharge?
+  resolver           Resolver?
+  notifications      Notification[]
+  upvote             Upvote?
+  createdAt          DateTime          @default(now())
 }
 
 model Upvote {

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
-import { InchargeSchema, RemoveSchema, UpdateInchargeSchema } from "../types/admin";
+import { InchargeSchema, RemoveSchema, ResolverSchema, UpdateInchargeSchema } from "../types/admin";
 import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 import { parse } from "dotenv";
 
@@ -38,43 +38,30 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
         const locationBlock = parseData.data.location?.split("-")[2];
         const rank = parseData.data.rank;
 
-        const newIncharge = await prisma.$transaction(async (tx) => {
-            const isLocationFound = await tx.location.findFirst({
-                where: {
-                    location: location as string,
-                    locationName: locationName as string,
-                    locationBlock: locationBlock as string
-                }, 
-                select: {
-                    id: true
-                }
-            });
-            
-            if(!isLocationFound) {
-                throw new Error("Could not find the location. Please try again.");
-            }
-    
-            const user = await tx.user.create({
-                data: {
-                    name: parseData.data.name,
-                    email: parseData.data.email,
-                    phoneNumber: parseData.data.phoneNumber,
-                    password: password,
-                    role: parseData.data.role as "ISSUE_INCHARGE",
-                    issueIncharge: {
-                        create: {
-                            locationId: isLocationFound.id,
-                            rank,
-                            designation: parseData.data.designation,
-                        },
+        const isLocationFound = await prisma.location.findFirst({
+            where: { location, locationName, locationBlock },
+            select: { id: true }
+        });
+        
+        if(!isLocationFound) {
+            throw new Error("Could not find the location. Please try again.");
+        }
+
+        const newIncharge = await prisma.user.create({
+            data: {
+                name: parseData.data.name,
+                email: parseData.data.email,
+                phoneNumber: parseData.data.phoneNumber,
+                password: password,
+                role: parseData.data.role as "ISSUE_INCHARGE",
+                issueIncharge: {
+                    create: {
+                        locationId: isLocationFound.id,
+                        rank,
+                        designation: parseData.data.designation,
                     },
                 },
-            });
-            
-            if(!user) {
-                throw new Error("Could not create new user. Please try again.");
-            }
-            return user;
+            },
         });
 
         if(!newIncharge) {
@@ -104,7 +91,75 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
 
 router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
+        const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, occupation: String }
+        const parseData = ResolverSchema.safeParse(body);
 
+        if(!parseData.success) {
+            throw new Error("Invalid inputs");
+        }
+
+        const password = bcrypt.hashSync(parseData.data.password, 10);  
+        const location = parseData.data.location.split("-")[0];
+        const locationName = parseData.data.location.split("-")[1];
+        const locationBlock = parseData.data.location.split("-")[2];
+
+        // find the locationId first
+        const locationDetails = await prisma.location.findFirst({
+            where: { location, locationName, locationBlock },
+            select: { id: true }
+        });
+
+        if(!locationDetails) {
+            throw new Error("Could not find the given location");
+        }
+
+        const resolverDetails = await prisma.user.create({
+            data: { 
+                name: parseData.data.name,
+                phoneNumber: parseData.data.phoneNumber,
+                email: parseData.data.email,
+                password,
+                role: parseData.data.role,
+                resolver: {
+                    create: {
+                        locationId: locationDetails.id,
+                        occupation: parseData.data.occupation
+                    }
+                }
+            },
+            include: {
+                resolver: {
+                    select: {
+                        location: {
+                            select: {
+                                location: true,
+                                locationName: true,
+                                locationBlock: true,
+                            }
+                        },
+                        occupation: true,
+                    }
+                }
+            }
+        });
+
+        if(!resolverDetails) {
+            throw new Error("Could not create resolver.");
+        }
+
+        res.status(201).json({
+            ok: true,
+            message: "Resolver created successfully",
+            resolverId: resolverDetails.id,
+            name: resolverDetails.name,
+            email: resolverDetails.email,
+            phoneNumber: resolverDetails.phoneNumber,
+            location: location,
+            locationName: locationName,
+            locationBlock: locationBlock,
+            designation: parseData.data.occupation,
+        });
+        
     } catch(err) {
         res.status(400).json({
             ok: false,

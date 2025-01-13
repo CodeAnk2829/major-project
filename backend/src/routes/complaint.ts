@@ -54,7 +54,6 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
             throw new Error("No incharge found for the given location");
         }
 
-        
         const createComplaint = await prisma.complaint.create({
             data: {
                 title: parseData.data.title,
@@ -63,7 +62,7 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
                 postAsAnonymous: parseData.data.postAsAnonymous,
                 complaintDetails: {
                     create: {
-                        assignedTo: issueIncharge.inchargeId,
+                        pickedBy: issueIncharge.inchargeId,
                     }
                 },
                 userId: req.user.id,
@@ -101,7 +100,7 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
                     select: {
                         upvotes: true,
                         actionTaken: true,
-                        user: {
+                        incharge: {
                             select: {
                                 id: true,
                                 name: true,
@@ -147,8 +146,8 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
             userId: complaintResponse.user.id,
             status: complaintResponse.status,
             inchargeId: issueIncharge.inchargeId,
-            inchargeName: complaintResponse.complaintDetails?.user.name,
-            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            inchargeName: complaintResponse.complaintDetails?.incharge.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.incharge.issueIncharge?.designation,
             location: parseData.data.location, 
             upvotes: complaintResponse.complaintDetails?.upvotes,
             actionTaken: complaintResponse.complaintDetails?.actionTaken,
@@ -206,7 +205,7 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                     select: {
                         upvotes: true,
                         actionTaken: true,
-                        user: {
+                        incharge: {
                             select: {
                                 id: true,
                                 name: true,
@@ -307,7 +306,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                     select: {
                         upvotes: true,
                         actionTaken: true,
-                        user: {
+                        incharge: {
                             select: {
                                 id: true,
                                 name: true,
@@ -358,9 +357,9 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             }
         }
 
-        const location = complaintResponse.complaintDetails?.user.issueIncharge?.location.location;
-        const locationName = complaintResponse.complaintDetails?.user.issueIncharge?.location.locationName;
-        const locationBlock = complaintResponse.complaintDetails?.user.issueIncharge?.location.locationBlock;
+        const location = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.location;
+        const locationName = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationName;
+        const locationBlock = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationBlock;
 
         res.status(201).json({
             ok: true,
@@ -372,9 +371,9 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             userId: complaintResponse.user.id,
             hasUpvoted,
             status: complaintResponse.status,
-            inchargeId: complaintResponse.complaintDetails?.user.id,
-            inchargeName: complaintResponse.complaintDetails?.user.name,
-            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            inchargeId: complaintResponse.complaintDetails?.incharge.id,
+            inchargeName: complaintResponse.complaintDetails?.incharge.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.incharge.issueIncharge?.designation,
             location: `${location}-${locationName}-${locationBlock}`,
             upvotes: complaintResponse.complaintDetails?.upvotes,
             actionTaken: complaintResponse.complaintDetails?.actionTaken,
@@ -434,7 +433,7 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
                     select: {
                         upvotes: true,
                         actionTaken: true,
-                        user: {
+                        incharge: {
                             select: {
                                 id: true,
                                 name: true,
@@ -565,7 +564,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
                 status: true,
                 complaintDetails: {
                     select: {
-                        user: {
+                        incharge: {
                             select: {
                                 issueIncharge: {
                                     select: {
@@ -599,7 +598,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             throw new Error("Access Denied. You do not have permissions to make changes for this complaint.");
         }
         
-        const currentLocationDetails = doesComplaintBelongToLoggedInUser.complaintDetails?.user.issueIncharge?.location;
+        const currentLocationDetails = doesComplaintBelongToLoggedInUser.complaintDetails?.incharge.issueIncharge?.location;
         const currentLocation = `${currentLocationDetails?.location}-${currentLocationDetails?.locationName}-${currentLocationDetails?.locationBlock}`
 
         let tagData: any[] = [];
@@ -656,7 +655,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
                 ...dataToUpdate,
                 complaintDetails: {
                     update: {
-                        assignedTo: issueIncharge.inchargeId,
+                        pickedBy: issueIncharge.inchargeId,
                     }
                 },
             }
@@ -691,7 +690,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
                     select: {
                         upvotes: true,
                         actionTaken: true,
-                        user: {
+                        incharge: {
                             select: {
                                 id: true,
                                 name: true,
@@ -749,9 +748,9 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             userId: complaintResponse.user.id,
             hasUpvoted,
             status: complaintResponse.status,
-            inchargeId: complaintResponse.complaintDetails?.user.id,
-            inchargeName: complaintResponse.complaintDetails?.user.name,
-            inchargeDesignation: complaintResponse.complaintDetails?.user.issueIncharge?.designation,
+            inchargeId: complaintResponse.complaintDetails?.incharge.id,
+            inchargeName: complaintResponse.complaintDetails?.incharge.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.incharge.issueIncharge?.designation,
             location: parseData.data.location,
             upvotes: complaintResponse.complaintDetails?.upvotes,
             actionTaken: complaintResponse.complaintDetails?.actionTaken,
