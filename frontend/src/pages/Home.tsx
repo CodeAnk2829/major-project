@@ -7,20 +7,22 @@ import SideBar from "../components/SideBar";
 const Home = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
       try {
         const res = await fetch("/api/v1/complaint/all");
         if (!res.ok) {
-          throw new Error("Failed to fetch complaints. Please try again later.");
+          throw new Error(
+            "Failed to fetch complaints. Please try again later."
+          );
         }
         const data = await res.json();
-        if (!data.complaints) {
+        if (!data.complaintResponse) {
           throw new Error("Unexpected response format.");
         }
-        setComplaints(data.complaints);
+        setComplaints(data.complaintResponse);
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -28,7 +30,7 @@ const Home = () => {
         setLoading(false); // Ensure loading stops regardless of success or failure
       }
     };
-  
+
     fetchComplaints();
   }, []);
 
@@ -47,7 +49,7 @@ const Home = () => {
         {loading ? (
           // Loading spinner
           <div className="flex justify-center items-center h-full">
-            <Spinner size="xl" className="fill-[rgb(60,79,131)]"/>
+            <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
           </div>
         ) : (
           <div className="max-w-6xl mx-auto flex flex-col gap-8">
@@ -58,12 +60,11 @@ const Home = () => {
                 </h2>
                 <div className="flex flex-col gap-4">
                   {complaints.map((complaint) => (
-                    <ComplaintCard key={complaint.id} complaint={complaint} />
+                    <ComplaintCard
+                      key={complaint.id}
+                      complaint={complaint}
+                    />
                   ))}
-                  {complaints.map((complaint) => (
-                    <ComplaintCard key={complaint.id} complaint={complaint} />
-                  ))}
-                  
                 </div>
               </div>
             ) : (
