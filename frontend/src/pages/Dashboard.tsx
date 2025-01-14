@@ -8,6 +8,7 @@ import { TiTick } from "react-icons/ti";
 import { ImCross } from "react-icons/im";
 import { HiOutlineExclamationCircle } from "react-icons/hi2";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
+import ComplaintCard from "../components/ComplaintCard";
 
 function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -85,71 +86,38 @@ function Dashboard() {
             <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
           </div>
         ) : (
-          <div className="flex-grow">
-            <h1 className="text-3xl font-semibold mb-6">Dashboard</h1>
-            <Table hoverable>
-              <Table.Head>
-                <Table.HeadCell>Title</Table.HeadCell>
-                <Table.HeadCell>Status</Table.HeadCell>
-                <Table.HeadCell>Created At</Table.HeadCell>
-                <Table.HeadCell>Posted Anonymously?</Table.HeadCell>
-                <Table.HeadCell>Access</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body>
-                {userComplaints.map((complaint: any) => (
-                  <Table.Row key={complaint.id}>
-                    <Table.Cell>
-                      <Link
-                        to={`/complaint/${complaint.id}`}
-                        className="text-slate-900 hover:underline"
-                      >
-                        {complaint.title}
-                      </Link>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge color={statusColors[complaint.status]}>
-                        {complaint.status}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      {new Date(complaint.createdAt).toLocaleDateString()}
-                    </Table.Cell>
-                    <Table.Cell className="">
-                      {complaint.postAsAnonymous ? <TiTick color="#4bb543" size={30}/> : <ImCross color="#fc100d" size={18}/>}
-                    </Table.Cell>
-                    <Table.Cell>{complaint.access}</Table.Cell>
-                    <Table.Cell className="flex gap-3">
-                      <Button
-                        color="info"
-                        size="xs"
-                        onClick={() => {
-                          setUpdateModalOpen(true);
-                          setComplaintIdToUpdate(complaint.id);
-                        }}
-                        disabled={complaint.status !== "PENDING"}
-                        className=""
-                      >
-                        <AiOutlineEdit className="mr-1" />
-                        Update
-                      </Button>
-                      <Button
-                        color="failure"
-                        size="xs"
-                        onClick={() => {
-                          setShowModal(true);
-                          setComplaintIdToDelete(complaint.id);
-                        }}
-                        disabled={complaint.status !== "PENDING"}
-                      >
-                        <AiOutlineDelete className="mr-1" />
-                        Delete
-                      </Button>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
+          <div className="max-w-6xl mx-auto flex flex-col gap-8">
+            {userComplaints && userComplaints.length > 0 ? (
+              <div className="flex flex-col gap-6">
+                <h2 className="text-2xl font-semibold text-center">
+                  Dashboard
+                </h2>
+                <div className="flex flex-col gap-4">
+                  {userComplaints.map((complaint) => (
+                    <ComplaintCard
+                      key={complaint.id}
+                      complaint={complaint}
+                      showProfile={false}
+                      showUpvote={false}
+                      showActions={true}
+                      showBadges={true}
+                      onUpdate={(id) => {
+                        setComplaintIdToUpdate(id);
+                        setUpdateModalOpen(true);
+                      }}
+                      onDelete={(id) => {
+                        setComplaintIdToDelete(id);
+                        setShowModal(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500">
+                No complaints found.
+              </div>
+            )}
           </div>
         )}
       </div>

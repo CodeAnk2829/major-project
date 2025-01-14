@@ -23,6 +23,7 @@ const Home = () => {
           throw new Error("Unexpected response format.");
         }
         setComplaints(data.complaintResponse);
+        console.log(complaints);
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -63,6 +64,10 @@ const Home = () => {
                     <ComplaintCard
                       key={complaint.id}
                       complaint={complaint}
+                      showProfile={true}
+                      showUpvote={true}
+                      showActions={false}
+                      showBadges={false}
                     />
                   ))}
                 </div>

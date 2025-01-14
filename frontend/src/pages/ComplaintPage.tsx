@@ -135,9 +135,9 @@ function ComplaintPage() {
             ))}
           </Carousel>
         ) : (
-          <div className="h-64 flex items-center justify-center bg-gray-100 rounded-lg">
-            <span className="text-gray-500 text-sm">No attachments</span>
-          </div>
+          <Carousel slide={false} className="mt-4 h-96" theme={customThemeCarousel}>
+          <img src='/default-complaint.jpg' alt='default complaint' className="object-scale-down"/>
+        </Carousel>
         )}
       <div className="mt-4 flex gap-4 self-center border-b border-slate-500">
         <p>
@@ -177,7 +177,7 @@ function ComplaintPage() {
             trigger="hover"
           >
             <Button
-              color="info"
+              color="light"
               onClick={handleUpdate}
               disabled={complaint.status !== "PENDING"}
             >

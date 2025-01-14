@@ -1,4 +1,4 @@
-import { Badge, Carousel } from "flowbite-react";
+import { Badge, Button, Carousel } from "flowbite-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
@@ -36,11 +36,16 @@ interface Complaint {
   complaintDetails: ComplaintDetails;
   postAsAnonymous: boolean;
   tags: Tags[];
-  hasUpvoted: boolean;
 }
 
 interface ComplaintCardProps {
   complaint: Complaint;
+  showProfile: boolean;
+  showUpvote: boolean;
+  showActions: boolean;
+  showBadges: boolean;
+  onUpdate?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const getInitials = (name: string): string => {
@@ -52,7 +57,15 @@ const getInitials = (name: string): string => {
   return initials.toUpperCase();
 };
 
-const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint }) => {
+const ComplaintCard: React.FC<ComplaintCardProps> = ({
+  complaint,
+  showProfile,
+  showUpvote,
+  showActions,
+  showBadges,
+  onUpdate,
+  onDelete,
+}) => {
   const [hasUserLiked, setHasUserLiked] = useState(false);
   const [likes, setLikes] = useState(complaint.complaintDetails.upvotes);
   const statusColors: Record<string, string> = {
@@ -142,41 +155,42 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint }) => {
   return (
     <div className="border rounded-lg shadow-md bg-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center border-b border-gray-200 p-4">
-        <div className="w-12 h-12 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white font-bold text-lg">
-          {complaint && getInitials(complaint.user.name || "User")}
+      {/* Profile Section */}
+      {showProfile && (
+        <div className="flex items-center border-b border-gray-200 p-4">
+          <div className="w-12 h-12 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white font-bold text-lg">
+            {getInitials(complaint.user.name || "User")}
+          </div>
+          <div className="ml-3">
+            <span className="block text-sm font-bold text-gray-700">
+              @{complaint.user.name}
+            </span>
+            <span className="text-xs text-gray-500">{createdAtDisplay}</span>
+          </div>
         </div>
-        <div className="ml-3">
-          <span className="block text-sm font-bold text-gray-700">
-            @{complaint && complaint.user.name}
-          </span>
-          <span className="text-xs text-gray-500">
-            {complaint && createdAtDisplay}
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Image Carousel */}
-        {complaint.attachments.length > 0 ? (
-          <Carousel
-            slide={false}
-            className="mt-4 h-64"
-            theme={customThemeCarousel}
-          >
-            {complaint.attachments.map((attachment) => (
-              <img
-                key={attachment.id}
-                src={attachment.imageUrl}
-                alt="Complaint Attachment"
-                className="object-scale-down"
-              />
-            ))}
-          </Carousel>
-        ) : (
-          <div className="h-64 flex items-center justify-center bg-gray-100 rounded-lg">
-            <span className="text-gray-500 text-sm">No attachments</span>
-          </div>
-        )}
+      {complaint.attachments.length > 0 ? (
+        <Carousel
+          slide={false}
+          className="mt-4 h-64"
+          theme={customThemeCarousel}
+        >
+          {complaint.attachments.map((attachment) => (
+            <img
+              key={attachment.id}
+              src={attachment.imageUrl}
+              alt="Complaint Attachment"
+              className="object-scale-down"
+            />
+          ))}
+        </Carousel>
+      ) : (
+        <Carousel slide={false} className="mt-4 h-64" theme={customThemeCarousel}>
+          <img src='default-complaint.jpg' alt='default complaint' className="object-scale-down"/>
+        </Carousel>
+      )}
 
       {/* Complaint Details */}
       <div className="p-4">
@@ -205,6 +219,16 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint }) => {
             </Badge>
           ))}
         </div>
+        {showBadges && (<div className="flex mt-2">
+          <Badge color={complaint.access === "PUBLIC" ? "success" : "warning"}>
+            {complaint.access}
+          </Badge>
+          {complaint.postAsAnonymous && (
+            <Badge color="gray" className="ml-2">
+              Anonymous
+            </Badge>
+          )}
+        </div>)}
       </div>
 
       {/* Footer */}
@@ -216,17 +240,38 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({ complaint }) => {
           {complaint.status}
         </Badge>
 
-        <div className="flex items-center">
-          <button
-            className={`text-xl ${"text-gray-500"} hover:text-gray-700`}
-            onClick={handleToggleUpvote}
-          >
-            {hasUserLiked ? <BiSolidUpvote /> : <BiUpvote />}
-          </button>
-          <span className="ml-2 text-gray-600 text-sm">
-            {complaint.complaintDetails.upvotes} upvotes
-          </span>
-        </div>
+        {showUpvote && (
+          <div className="flex items-center">
+            <button
+              className={`text-xl ${
+                hasUserLiked ? "text-blue-600" : "text-gray-500"
+              } hover:text-blue-800`}
+              onClick={handleToggleUpvote}
+            >
+              {hasUserLiked ? <BiSolidUpvote /> : <BiUpvote />}
+            </button>
+            <span className="ml-2 text-gray-600 text-sm">{likes} upvotes</span>
+          </div>
+        )}
+
+        {showActions && (
+          <div className="flex items-center gap-2">
+            <Button
+              color="light"
+              disabled={complaint.status !== "PENDING"}
+              onClick={() => onUpdate && onUpdate(complaint.id)}
+            >
+              Update
+            </Button>
+            <Button
+              color="failure"
+              disabled={complaint.status !== "PENDING"}
+              onClick={() => onDelete && onDelete(complaint.id)}
+            >
+              Delete
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
