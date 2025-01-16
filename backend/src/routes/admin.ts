@@ -799,27 +799,36 @@ router.patch("/update/resolver/:id", authMiddleware, authorizeMiddleware(Role), 
     }
 });
 
-router.delete("/remove/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.delete("/remove/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
-        const inchargeId = req.params.id;
-
-        if (!inchargeId) {
-            throw new Error("Invalid incharge id");
+        const id = req.params.id; // anyone except admin
+    
+        // check whether the id is of admin's id
+        // restrict delete action on admin
+        const isAdmin = await prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        });
+        
+        if(!isAdmin) {
+            throw new Error("Could not find user i.e. invalid id");
+        }
+         
+        if(isAdmin.role === "ADMIN") {
+            throw new Error("Restricted action.");
         }
 
         const isRemovalSucceeded = await prisma.user.delete({
-            where: {
-                id: inchargeId
-            }
+            where: { id }
         });
 
         if (!isRemovalSucceeded) {
-            throw new Error("Could not remove incharge. Please try again.");
+            throw new Error("Could not remove user. Please try again.");
         }
 
         res.status(202).json({
             ok: true,
-            message: "The incharge has been successfully removed.",
+            message: "The user has been successfully removed.",
         });
 
     } catch (err) {
