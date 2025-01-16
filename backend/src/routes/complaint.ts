@@ -744,7 +744,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
             }
         }
 
-        res.status(201).json({
+        res.status(200).json({
             ok: true,
             message: "Complaint updated successfully",
             complaintId: complaintResponse.id,

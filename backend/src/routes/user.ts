@@ -2,7 +2,7 @@ import { Router } from "express";
 import dotenv, { parse } from "dotenv";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { SigninSchema, SignupSchema } from "../types/user";
+import { PasswordSchema, SigninSchema, SignupSchema, UpdateSchema } from "../types/user";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
 
@@ -305,5 +305,110 @@ router.get("/me/upvoted", authMiddleware, authorizeMiddleware(Role), async (req:
         });
     }
 });
+
+router.patch("/me/update", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const userId = req.user.id;
+        const body = req.body; // { name: string, email: string, phoneNumber: string }
+        const parseData = UpdateSchema.safeParse(body);
+
+        if(!parseData.success) {
+            throw new Error("Invalid Inputs");
+        }
+
+        // update the user's details
+        const userDetailsAfterUpdate = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name: parseData.data.name,
+                email: parseData.data.email,
+                phoneNumber: parseData.data.phoneNumber
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+            }
+        });
+
+        if(!userDetailsAfterUpdate) {
+            throw new Error("Could not update user's details.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            message: "User details updated successfully.",
+            id: userDetailsAfterUpdate.id,
+            name: userDetailsAfterUpdate.name,
+            email: userDetailsAfterUpdate.email,
+            phoneNumber: userDetailsAfterUpdate.phoneNumber,
+            role: userDetailsAfterUpdate.role,
+        });
+
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while updating the user's details."
+        });
+    }
+});
+
+router.patch("/me/change-password", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const userId = req.user.id;
+        const body = req.body; // { currentPassword: string, newPassword: string, confirmPassword: string }
+        const parseData = PasswordSchema.safeParse(body);
+
+        if(!parseData.success) { 
+            throw new Error("Invalid inputs");
+        }
+
+        if(parseData.data.newPassword !== parseData.data.confirmPassword) {
+            throw new Error("New password and confirm password do not match.");
+        }
+
+        // get user's old password
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { password: true }
+        });
+
+        if(!user) {
+            throw new Error("Could not find user.");
+        }
+
+        const oldPassword = bcrypt.compareSync(parseData.data.currentPassword, user.password);
+
+        if(!oldPassword) {
+            throw new Error("Current password is incorrect.");
+        }
+
+        // change the password
+        const newPassword = bcrypt.hashSync(parseData.data.newPassword, 10);
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { password: newPassword },
+            select: { id: true }
+        });
+
+        if(!updatedUser) {
+            throw new Error("Could not update password.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            message: "Password updated successfully.",
+            userId: updatedUser.id
+        });
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while changing the password."
+        });
+    }
+});
+
 
 export const userRouter = router;
