@@ -215,6 +215,7 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                                 issueIncharge: {
                                     select: {
                                         designation: true,
+                                        location: true,
                                     }
                                 }
                             }
@@ -315,14 +316,8 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
                                 email: true,
                                 issueIncharge: {
                                     select: {
-                                        location: {
-                                            select: {
-                                                location: true,
-                                                locationName: true,
-                                                locationBlock: true
-                                            }
-                                        },
                                         designation: true,
+                                        location: true,
                                     }
                                 }
                             }
@@ -336,7 +331,7 @@ router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, r
             throw new Error("Could not fetch the required complaint");
         }
 
-        const upvote = await prisma.upvote.findUnique({
+        const upvote = await prisma.upvote.findFirst({
             where: { userId, complaintId },
             select: { id: true }
         });
@@ -445,6 +440,7 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
                                 issueIncharge: {
                                     select: {
                                         designation: true,
+                                        location: true,
                                     }
                                 }
                             }
@@ -484,40 +480,46 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
 // upvote a complaint
 router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
-        const complaintId = req.params.id;
-        const userId = req.user.id;
+        const complaintId: string = req.params.id;
+        const userId: string = req.user.id;
 
         if(!userId) {
             throw new Error("Unauthorized");
         }
 
+        if(!complaintId) {
+            throw new Error("No complaint id provided");
+        }
         // first check an user has already upvoted
-        const isUpvoted = await prisma.upvote.findUnique({
+        const hasUpvoted = await prisma.upvote.findFirst({
             where: { userId, complaintId },
             select: { id: true }
         });
 
         let finalAction: any;
         
-        if(!isUpvoted) {
+        if(!hasUpvoted) {
             const addUpvote = await prisma.upvote.create({
-                data: { userId, complaintId },
+                data: { 
+                    userId,
+                    complaintId
+                },
             });
 
             if(!addUpvote) {
                 throw new Error("Could not upvote. Please try again");
             }
-    
             finalAction = { increment: 1 };
         } else {
             const removeUpvote = await prisma.upvote.delete({
-                where: { userId }
+                where: { 
+                    id: hasUpvoted.id
+                }
             });
 
             if(!removeUpvote) {
                 throw new Error("Could not remove upvote. Please try again");
             }
-        
             finalAction = { decrement: 1 };
         }
 
@@ -539,10 +541,10 @@ router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req
         res.status(200).json({
             ok: true,
             upvotes: totalUpvotes.upvotes,
-            isUpvoted: isUpvoted ? false : true
+            hasUpvoted: hasUpvoted ? false : true
         });
     } catch (err) {
-        res.json(400).json({
+        res.status(400).json({
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while voting"
         });
@@ -718,7 +720,7 @@ router.put("/update/:id", authMiddleware, authorizeMiddleware(Role), async (req:
         // check whether this user has upvoted this complaint
         let hasUpvoted: boolean = false;
 
-        const upvote = await prisma.upvote.findUnique({
+        const upvote = await prisma.upvote.findFirst({
             where: { userId: currentUserId, complaintId},
             select: { id: true }
         });
@@ -813,4 +815,5 @@ router.delete("/delete/:id", authMiddleware, authorizeMiddleware(Role), async (r
         });
     }
 });
+
 export const complaintRouter = router;
