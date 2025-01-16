@@ -24,7 +24,7 @@ const getInitials = (name: string) => {
   return initials.toUpperCase();
 };
 
-const SideBar = ({ isAdmin }: { isAdmin: boolean }) => {
+const SideBar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [open, setOpen] = useState(true);
   const dispatch = useDispatch();
@@ -48,54 +48,10 @@ const SideBar = ({ isAdmin }: { isAdmin: boolean }) => {
   };
 
   const sidebarOptions = [
-    {
-      label: "Home",
-      icon: <HiHome className="text-2xl" />,
-      path: "/",
-      showForAdmin: false,
-    },
-    {
-      label: "Dashboard",
-      icon: <HiChartPie className="text-2xl" />,
-      path: "/dashboard",
-      showForAdmin: false,
-    },
-    {
-      label: "Notifications",
-      icon: <HiBell className="text-2xl" />,
-      path: "/notifications",
-      showForAdmin: false,
-    },
-    {
-      label: "Profile",
-      icon: <HiUser className="text-2xl" />,
-      path: "/profile",
-      showForAdmin: false,
-    },
-    {
-      label: "Manage Complaints",
-      icon: <HiClipboard className="text-2xl" />,
-      path: "/admin/complaints",
-      showForAdmin: true,
-    },
-    {
-      label: "Manage Users",
-      icon: <HiUsers className="text-2xl" />,
-      path: "/admin/users",
-      showForAdmin: true,
-    },
-    {
-      label: "Manage Tags",
-      icon: <HiTag className="text-2xl" />,
-      path: "/admin/tags",
-      showForAdmin: true,
-    },
-    {
-      label: "Manage Locations",
-      icon: <HiLocationMarker className="text-2xl" />,
-      path: "/admin/locations",
-      showForAdmin: true,
-    },
+    { label: "Home", icon: <HiHome className="text-2xl" />, path: "/" },
+    { label: "Dashboard", icon: <HiChartPie className="text-2xl" />, path: "/dashboard" },
+    { label: "Notifications", icon: <HiBell className="text-2xl" />, path: "/notifications" },
+    { label: "Profile", icon: <HiUser className="text-2xl" />, path: "/profile" },
   ];
 
   return (
@@ -117,70 +73,51 @@ const SideBar = ({ isAdmin }: { isAdmin: boolean }) => {
       <div className={`flex gap-x-4 items-center`}>
         <img
           src="/manit_logo.png"
-          className={`cursor-pointer duration-500 ${
-            open && "rotate-[360deg] h-16"
-          }`}
+          className={`cursor-pointer duration-500 ${open && "rotate-[360deg] h-16"}`}
         />
         <div className={`${!open && "hidden"}`}>
           <span className="text-xl font-bold text-gray-800">Maulana Azad</span>
           <br />
-          <span className="text-lg font-semibold text-gray-700">
-            National Institute of Technology
-          </span>
+          <span className="text-lg font-semibold text-gray-700">National Institute of Technology</span>
           <br />
-          <span className="text-md font-light text-gray-600">
-            Complaint Portal
-          </span>
+          <span className="text-md font-light text-gray-600">Complaint Portal</span>
         </div>
       </div>
 
       {/* Sidebar Options */}
       <ul className="pt-6">
         <div className="flex-grow">
-          {sidebarOptions
-            .filter((option) => (isAdmin ? true : !option.showForAdmin))
-            .map((option, index) => (
-              <Link to={option.path} key={index}>
-                <li
-                  className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl ${
-                    location.pathname === option.path
-                      ? "bg-[rgb(60,79,131)] text-white hover:text-gray-800"
-                      : "text-gray-800 hover:bg-gray-100"
-                  }`}
-                >
-                  {option.icon}
-                  <span
-                    className={`${
-                      !open && "hidden"
-                    } origin-left duration-200 text-2xl`}
-                  >
-                    {option.label}
-                  </span>
-                </li>
-              </Link>
-            ))}
+          {sidebarOptions.map((option, index) => (
+            <Link to={option.path} key={index}>
+              <li
+                    className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl ${
+                      location.pathname === option.path
+                        ? "bg-[rgb(60,79,131)] text-white"
+                        : "text-gray-800 hover:bg-gray-100"
+                    }`}
+              >
+                {option.icon}
+                <span className={`${!open && "hidden"} origin-left duration-200 text-2xl`}>
+                  {option.label}
+                </span>
+              </li>
+            </Link>
+          ))}
 
           {/* Create Complaint Button */}
-          {!isAdmin && (
-            <li
-              className={`flex justify-center rounded-md p-3.5 cursor-pointer text-gray-800 items-center gap-x-4 mt-3 text-2xl`}
+          <li
+            className={`flex justify-center rounded-md p-3.5 cursor-pointer text-gray-800 items-center gap-x-4 mt-3 text-2xl`}
+          >
+            <button
+              className={`text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center w-2/3 mt-10 ${
+                !open && "hidden"
+              }`}
+              onClick={() => setIsModalOpen(true)}
             >
-              <button
-                className={`text-white bg-[rgb(60,79,131)] hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-2 py-5 text-center w-2/3 mt-10 ${
-                  !open && "hidden"
-                }`}
-                onClick={() => setIsModalOpen(true)}
-              >
-                Create Complaint
-              </button>
-              {!open && (
-                <FaPlus
-                  className="text-2xl"
-                  onClick={() => setIsModalOpen(true)}
-                />
-              )}
-            </li>
-          )}
+              Create Complaint
+            </button>
+            {!open && <FaPlus className="text-2xl" onClick={() => setIsModalOpen(true)} />}
+          </li>
 
           {/* Profile Section */}
           <Link to={"/profile"}>
@@ -188,9 +125,7 @@ const SideBar = ({ isAdmin }: { isAdmin: boolean }) => {
               className={`flex rounded-md p-3.5 cursor-pointer hover:bg-light-white text-gray-800 items-center gap-x-4 mt-3`}
             >
               <div
-                className={`flex items-center ${
-                  !open ? "justify-center" : "justify-start"
-                } w-full p-4`}
+                className={`flex items-center ${!open ? "justify-center" : "justify-start"} w-full p-4`}
               >
                 <div
                   className={`${
@@ -217,18 +152,11 @@ const SideBar = ({ isAdmin }: { isAdmin: boolean }) => {
         onClick={handleSignout}
       >
         <FaSignOutAlt className="text-2xl" />
-        <span
-          className={`${!open && "hidden"} origin-left duration-200 text-2xl`}
-        >
-          Sign Out
-        </span>
+        <span className={`${!open && "hidden"} origin-left duration-200 text-2xl`}>Sign Out</span>
       </li>
 
       {/* Create Complaint Modal */}
-      <CreateComplaintModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
+      <CreateComplaintModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };
