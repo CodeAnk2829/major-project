@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { SigninSchema, SignupSchema } from "../types/user";
 import { PrismaClient } from "@prisma/client";
+import { authMiddleware } from "../middleware/auth";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -133,6 +134,19 @@ router.post("/auth/signup", async (req, res) => {
     }
 });
 
-// create sign out endpoint
+router.post("/auth/signout", authMiddleware, async (req, res) => {
+    try {
+        res.clearCookie("token");
+        res.status(200).json({
+            ok: true,
+            message: "Successfully signed out"
+        });
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while signing out."
+        });
+    }
+});
 
 export const userRouter = router;
