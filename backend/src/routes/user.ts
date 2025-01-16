@@ -11,6 +11,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 const secret: string | undefined = process.env.JWT_SECRET;
+
 enum Role {
     FACULTY = "FACULTY",
     STUDENT = "STUDENT",
@@ -410,5 +411,30 @@ router.patch("/me/change-password", authMiddleware, authorizeMiddleware(Role), a
     }
 });
 
+// delete account 
+router.delete("/me/delete", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const userId = req.user.id;
+        const deletedUser = await prisma.user.delete({
+            where: { id: userId },
+            select: { id: true }
+        });
+
+        if(!deletedUser) {
+            throw new Error("Could not delete user account.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            message: "User account deleted successfully.",
+            id: deletedUser.id
+        });
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An occurred while deleting user account."
+        });
+    }
+});
 
 export const userRouter = router;
