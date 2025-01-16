@@ -76,7 +76,7 @@ function Dashboard() {
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar />
+        <SideBar isAdmin={false}/>
       </div>
 
       {/* Main Section */}

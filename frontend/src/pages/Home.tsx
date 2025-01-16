@@ -7,7 +7,7 @@ import SideBar from "../components/SideBar";
 const Home = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [upvotedComplaints, setUpvotedComplaints] = useState([]);
   useEffect(() => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
@@ -23,7 +23,8 @@ const Home = () => {
           throw new Error("Unexpected response format.");
         }
         setComplaints(data.complaintResponse);
-        console.log(complaints);
+        setUpvotedComplaints(data.upvotedComplaints)
+        console.log("upvoted: ",data);
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -39,7 +40,7 @@ const Home = () => {
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar />
+        <SideBar isAdmin={false}/>
       </div>
 
       {/* Main Section */}
@@ -66,6 +67,7 @@ const Home = () => {
                       complaint={complaint}
                       showProfile={true}
                       showUpvote={true}
+                      upvotedComplaints={upvotedComplaints}
                       showActions={false}
                       showBadges={false}
                     />
