@@ -11,6 +11,10 @@ import RoleBasedRoute from './components/RoleBasedRoute'
 import IssueInchargeDashboard from './pages/IssueInchargeDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import Dashboard from './pages/Dashboard'
+import ManageComplaints from './pages/ManageComplaints'
+import ManageUsers from './pages/ManageUsers'
+import ManageTags from './pages/ManageTags'
+import ManageLocations from './pages/ManageLocations'
 
 function App() {
 
@@ -39,6 +43,10 @@ function App() {
         {/* Admin Routes */}
         <Route element={<OnlyAdminPrivateRoute />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/complaints" element={<ManageComplaints />} />
+          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/tags" element={<ManageTags />} />
+          <Route path="/admin/locations" element={<ManageLocations />} />
         </Route>
         <Route path="/not-authorized" element={<div>Not Authorized</div>} />
       </Routes>
