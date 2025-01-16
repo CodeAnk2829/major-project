@@ -1,9 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
-import { InchargeSchema, RemoveSchema, ResolverSchema, UpdateInchargeSchema } from "../types/admin";
+import { InchargeSchema, RemoveSchema, ResolverSchema, UpdateInchargeSchema, UpdateResolverSchema } from "../types/admin";
 import { authMiddleware, authorizeMiddleware } from "../middleware/auth";
-import { parse } from "dotenv";
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -564,68 +563,123 @@ router.get("/get/users", authMiddleware, authorizeMiddleware(Role), async (req, 
     }
 });
 
-router.put("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.patch("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const inchargeId = req.params.id;
-        const body = req.body; // { name: string, email: string, phoneNumber: string, password: string, location: string, designation: string, rank: number }
-        const parseData = UpdateInchargeSchema.safeParse(body);
+        const updateData = req.body; // { name: string, email: string, phoneNumber: string, password: string, location: string, designation: string, rank: number? }
+        const parseData = UpdateInchargeSchema.safeParse(updateData);
 
-        if(!parseData.success) {
+        if (!parseData.success) {
             throw new Error("Invalid inputs");
         }
 
-        const password = bcrypt.hashSync(parseData.data.password, 10);
-        const location = parseData.data.location?.split("-")[0];
-        const locationName = parseData.data.location?.split("-")[1];
-        const locationBlock = parseData.data.location?.split("-")[2];
+        let cleanedData: any = Object.fromEntries(
+            Object.entries(updateData).filter(([_, value]) => value != null)
+        );
 
-        const detailsAfterUpdate = await prisma.$transaction(async (tx) => {
-            const currentLocation = await tx.location.findFirst({
+        if ('password' in cleanedData) {
+            const plainPassword: any = cleanedData.password;
+            const password = bcrypt.hashSync(plainPassword, 10);
+            cleanedData.password = password;
+        }
+
+        if ('location' in cleanedData) {
+            const location = parseData.data.location?.split("-")[0];
+            const locationName = parseData.data.location?.split("-")[1];
+            const locationBlock = parseData.data.location?.split("-")[2];
+
+            const currentLocation = await prisma.location.findFirst({
                 where: { location, locationName, locationBlock },
                 select: { id: true }
             });
 
-            if(!currentLocation) {
+            if (!currentLocation) {
                 throw new Error("Could not find the given location.");
             }
 
-            const isUpdateSucceeded = await tx.user.update({
-                where: {
-                    id: inchargeId
-                },
-                data: {
-                    name: parseData.data.name,
-                    email: parseData.data.email,
-                    phoneNumber: parseData.data.phoneNumber,
-                    password: password,
-                    issueIncharge: {
-                        update: {
-                            designation: parseData.data.designation,
-                            rank: parseData.data.rank
-                        }
+            cleanedData = {
+                ...cleanedData,
+                issueIncharge: {
+                    update: {
+                        locationId: currentLocation.id,
                     }
                 }
-            });
-    
-            if(!isUpdateSucceeded) {
-                throw new Error("Could not update incharge details. Please try again.");
+            };
+
+            delete cleanedData.location;
+
+            if ('designation' in cleanedData) {
+                cleanedData.issueIncharge.update.designation = parseData.data.designation;
+                delete cleanedData.designation;
             }
-            return isUpdateSucceeded;
+            if('rank' in cleanedData) {
+                cleanedData.issueIncharge.update.rank = parseData.data.rank;
+                delete cleanedData.rank;
+            }
+        } else if ('designation' in cleanedData) {
+            cleanedData = {
+                ...cleanedData,
+                issueIncharge: {
+                    update: {
+                        designation: cleanedData.designation,
+                    }
+                }
+            };
+            delete cleanedData.designation;
+            if ('rank' in cleanedData) {
+                cleanedData.issueIncharge.update.rank = parseData.data.rank;
+                delete cleanedData.rank;
+            }
+        } else if ('rank' in cleanedData) {
+            cleanedData = {
+                ...cleanedData, 
+                issueIncharge: {
+                    update: {
+                        rank: cleanedData.rank
+                    }
+                }
+            }
+            delete cleanedData.rank;
+        }
+
+        const isUpdateSucceeded = await prisma.user.update({
+            where: {
+                id: inchargeId
+            },
+            data: cleanedData,
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+                createdAt: true,
+                issueIncharge: {
+                    select: {
+                        location: true,
+                        designation: true,
+                        rank: true,
+                    }
+                }
+            }
         });
 
-        if(!detailsAfterUpdate) {
-            throw new Error("Something went wrong while updating incharge details. Please try again.");
+        if(!isUpdateSucceeded) {
+            throw new Error("Could not update incharge details. Please try again.");
         }
+
+        const currentLocation = isUpdateSucceeded.issueIncharge?.location;
 
         res.status(200).json({
             ok: true,
             message: "Incharge details updated successfully",
-            name: parseData.data.name,
-            email: parseData.data.email,
-            phoneNumber: parseData.data.phoneNumber,
-            location: parseData.data.location,
-            designation: parseData.data.designation,
-            rank: parseData.data.rank,
+            name: isUpdateSucceeded.name,
+            email: isUpdateSucceeded.email,
+            phoneNumber: isUpdateSucceeded.phoneNumber,
+            role: isUpdateSucceeded.role,
+            location: `${currentLocation?.location}-${currentLocation?.locationName}-${currentLocation?.locationBlock}`,
+            designation: isUpdateSucceeded.issueIncharge?.designation,
+            rank: isUpdateSucceeded.issueIncharge?.rank,
         });
 
     } catch(err) {
@@ -636,6 +690,114 @@ router.put("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), as
     }
 });
 
+router.patch("/update/resolver/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const resolverId = req.params.id;
+        const updateData = req.body; // { name: string, email: string, phoneNumber: string, password: string, location: string, role: string, occupation: string }
+        const parseData = UpdateResolverSchema.safeParse(updateData);
+
+        if(!parseData.success) {
+            throw new Error("Invalid inputs");
+        }
+
+        let cleanedData: any = Object.fromEntries(
+            Object.entries(updateData).filter(([_, value]) => value != null)
+        );
+
+        if('password' in cleanedData) {
+            const plainPassword: any = cleanedData.password;
+            const password = bcrypt.hashSync(plainPassword, 10);
+            cleanedData.password = password;
+        }
+
+        if('location' in cleanedData) {
+            const location = parseData.data.location?.split("-")[0];
+            const locationName = parseData.data.location?.split("-")[1];
+            const locationBlock = parseData.data.location?.split("-")[2];
+
+            const currentLocation = await prisma.location.findFirst({
+                where: { location, locationName, locationBlock },
+                select: { id: true }
+            });
+    
+            if (!currentLocation) {
+                throw new Error("Could not find the given location.");
+            }
+
+            cleanedData = { 
+                ...cleanedData,
+                resolver: {
+                    update: { 
+                        locationId: currentLocation.id,
+                    } 
+                } 
+            };
+
+            delete cleanedData.location;
+
+            if('occupation' in cleanedData) {
+                cleanedData.resolver.update.occupation = parseData.data.occupation;
+                delete cleanedData.occupation;
+            } 
+        } else if('occupation' in cleanedData) {
+            cleanedData = { 
+                ...cleanedData,
+                resolver: {
+                    update: { 
+                        occupation: parseData.data.occupation,
+                    } 
+                } 
+            };
+            delete cleanedData.occupation;
+        }
+
+        console.log(cleanedData);
+        const isUpdateSucceeded = await prisma.user.update({
+            where: {
+                id: resolverId
+            },
+            data: cleanedData,
+            select: {
+                name: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+                resolver: {
+                    select: {
+                        occupation: true,
+                        location: {
+                            select: {
+                                location: true,
+                                locationName: true,
+                                locationBlock: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!isUpdateSucceeded) {
+            throw new Error("Could not update incharge details. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            message: "Resolver's details updated successfully",
+            name: isUpdateSucceeded.name,
+            email: isUpdateSucceeded.email,
+            phoneNumber: isUpdateSucceeded.phoneNumber,
+            role: isUpdateSucceeded.role,
+            location: `${isUpdateSucceeded.resolver?.location.location}-${isUpdateSucceeded.resolver?.location.locationName}-${isUpdateSucceeded.resolver?.location.locationBlock}`,
+            occupation: isUpdateSucceeded.resolver?.occupation,
+        });
+    } catch(err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while updating resolver details. Please try again."
+        });
+    }
+});
 
 router.delete("/remove/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
@@ -720,7 +882,6 @@ router.delete("/remove/locations", authMiddleware, authorizeMiddleware(Role), as
         });
     }
 });
-
 
 router.delete("/remove/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
