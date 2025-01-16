@@ -459,6 +459,60 @@ router.get("/get/resolvers", authMiddleware, authorizeMiddleware(Role), async (r
     }
 });
 
+router.get("/get/resolver/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const resolverId = req.params.id;
+        const resolver = await prisma.user.findUnique({
+            where: { id: resolverId },
+            select: {
+                id: true,
+                name: true, 
+                email: true,
+                phoneNumber: true,
+                role: true,
+                createdAt: true,
+                resolversComplaint: {
+                    select: {
+                        complaintId: true,
+                        pickedBy: true,
+                        actionTaken: true,
+                        resolvedAt: true
+                    }
+                },
+                resolver: {
+                    select: {
+                        occupation: true,
+                        location: true
+                    }
+                }
+            }
+        });
+
+        if(!resolver) {
+            throw new Error("Could not fetch resolver details. Please try again.");
+        }   
+
+        res.status(200).json({
+            ok: true,
+            resolverId: resolver.id,
+            resolverName: resolver.name,
+            email: resolver.email,
+            phoneNUmber: resolver.phoneNumber,
+            role: resolver.role,
+            createdAt: resolver.createdAt,
+            occupation: resolver.resolver?.occupation,
+            location: `${resolver.resolver?.location.location}-${resolver.resolver?.location.locationName}-${resolver.resolver?.location.locationBlock}`,
+            complaints: resolver.resolversComplaint
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching resolver details. Please try again."
+        });
+    }
+});
+
 router.get("/get/tags", async (req, res) => {
     try {
         const tags = await prisma.tag.findMany({});
@@ -582,6 +636,7 @@ router.put("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), as
     }
 });
 
+
 router.delete("/remove/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const inchargeId = req.params.id;
@@ -699,5 +754,6 @@ router.delete("/remove/tags", authMiddleware, authorizeMiddleware(Role), async (
         });
     }
 });
+
 
 export const adminRouter = router;
