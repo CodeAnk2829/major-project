@@ -144,7 +144,7 @@ function Profile() {
     <div className="flex flex-col md:flex-row h-screen">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <Sidebar isAdmin={currentUser.role === 'ADMIN'}/>
+        <Sidebar />
       </div>
 
       {/* Main content */}

@@ -9,6 +9,7 @@ import { ImCross } from "react-icons/im";
 import { HiOutlineExclamationCircle } from "react-icons/hi2";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
 import ComplaintCard from "../components/ComplaintCard";
+import AdminSidebar from "../components/AdminSidebar";
 
 function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,7 @@ function Dashboard() {
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar isAdmin={false}/>
+        {currentUser.role !== 'ADMIN' ? <SideBar/> : <AdminSidebar/>}
       </div>
 
       {/* Main Section */}

@@ -40,7 +40,7 @@ const Home = () => {
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar isAdmin={false}/>
+        <SideBar/>
       </div>
 
       {/* Main Section */}
