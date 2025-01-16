@@ -17,7 +17,7 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
         const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, designation: String, rank: Number }
         const parseData = InchargeSchema.safeParse(body);
 
-        if(!parseData.success) {
+        if (!parseData.success) {
             throw new Error("Invalid Inputs");
         }
 
@@ -28,7 +28,7 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
             }
         });
 
-        if(isUserExisted) {
+        if (isUserExisted) {
             throw new Error("User already exists");
         }
 
@@ -42,8 +42,8 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
             where: { location, locationName, locationBlock },
             select: { id: true }
         });
-        
-        if(!isLocationFound) {
+
+        if (!isLocationFound) {
             throw new Error("Could not find the location. Please try again.");
         }
 
@@ -64,7 +64,7 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
             },
         });
 
-        if(!newIncharge) {
+        if (!newIncharge) {
             throw new Error("Could not create new incharge. Please try again.");
         }
 
@@ -80,11 +80,40 @@ router.post("/assign/incharge", authMiddleware, authorizeMiddleware(Role), async
             locationBlock: locationBlock,
             designation: parseData.data.designation,
             rank: parseData.data.rank,
-        }); 
-    } catch(err) {
+        });
+    } catch (err) {
         res.status(400).json({
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while assigning incharge. Please try again."
+        });
+    }
+});
+
+router.post("/create/locations", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const locations = req.body.locations; // { locations: Array<{ location: String, locationName: String, locationBlock: String }> }
+
+        if (locations.length === 0) {
+            throw new Error("Invalid inputs");
+        }
+
+        const newLocations = await prisma.location.createMany({
+            data: locations
+        });
+
+        if (!newLocations) {
+            throw new Error("Could not create locations. Please try again.");
+        }
+
+        res.status(201).json({
+            ok: true,
+            message: "Locations created successfully",
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while creating locations. Please try again."
         });
     }
 });
@@ -94,11 +123,11 @@ router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async
         const body = req.body; // { name: String, email: String, phoneNumber: string, password: String, role: String, location: String, occupation: String }
         const parseData = ResolverSchema.safeParse(body);
 
-        if(!parseData.success) {
+        if (!parseData.success) {
             throw new Error("Invalid inputs");
         }
 
-        const password = bcrypt.hashSync(parseData.data.password, 10);  
+        const password = bcrypt.hashSync(parseData.data.password, 10);
         const location = parseData.data.location.split("-")[0];
         const locationName = parseData.data.location.split("-")[1];
         const locationBlock = parseData.data.location.split("-")[2];
@@ -109,12 +138,12 @@ router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async
             select: { id: true }
         });
 
-        if(!locationDetails) {
+        if (!locationDetails) {
             throw new Error("Could not find the given location");
         }
 
         const resolverDetails = await prisma.user.create({
-            data: { 
+            data: {
                 name: parseData.data.name,
                 phoneNumber: parseData.data.phoneNumber,
                 email: parseData.data.email,
@@ -143,7 +172,7 @@ router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async
             }
         });
 
-        if(!resolverDetails) {
+        if (!resolverDetails) {
             throw new Error("Could not create resolver.");
         }
 
@@ -159,11 +188,100 @@ router.post("/assign/resolver", authMiddleware, authorizeMiddleware(Role), async
             locationBlock: locationBlock,
             designation: parseData.data.occupation,
         });
-        
-    } catch(err) {
+
+    } catch (err) {
         res.status(400).json({
             ok: false,
             error: err instanceof Error ? err.message : "An error occurred while assigning resolver. Please try again."
+        });
+    }
+});
+
+router.post("/create/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const tags = req.body.tags; // { tags: Array<String> }
+
+        if (tags.length === 0) {
+            throw new Error("Invalid inputs");
+        }
+
+        const totalTags: any[] = [];
+
+        tags.forEach((tag: string) => {
+            totalTags.push({ tagName: tag });
+        });
+
+        const newTags = await prisma.tag.createMany({
+            data: totalTags
+        });
+
+        if (!newTags) {
+            throw new Error("Could not create tags. Please try again.");
+        }
+
+        res.status(201).json({
+            ok: true,
+            message: "Tags created successfully",
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while creating tags. Please try again."
+        });
+    }
+});
+
+router.get("/get/incharges", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const incharges = await prisma.user.findMany({
+            where: {
+                role: "ISSUE_INCHARGE"
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                issueIncharge: {
+                    select: {
+                        location: {
+                            select: {
+                                location: true,
+                                locationName: true,
+                                locationBlock: true
+                            }
+                        },
+                        designation: true,
+                        rank: true
+                    }
+                },
+                createdAt: true
+            }
+        });
+
+        if (!incharges) {
+            throw new Error("Could not fetch incharges. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            incharges: incharges.map((incharge) => ({
+                inchargeId: incharge.id,
+                name: incharge.name,
+                email: incharge.email,
+                phoneNumber: incharge.phoneNumber,
+                location: `${incharge.issueIncharge?.location.location}-${incharge.issueIncharge?.location.locationName}-${incharge.issueIncharge?.location.locationBlock}`,
+                designation: incharge.issueIncharge?.designation,
+                rank: incharge.issueIncharge?.rank,
+                createdAt: incharge.createdAt
+            }))
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching incharges. Please try again."
         });
     }
 });
@@ -172,7 +290,7 @@ router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async
     try {
         const inchargeId = req.params.id;
 
-        if(!inchargeId) {
+        if (!inchargeId) {
             throw new Error("Invalid incharge id.");
         }
 
@@ -203,12 +321,12 @@ router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async
         });
 
         // todo: how many complaints has been assigned to this incharge
-        if(!inchargeDetails) {
+        if (!inchargeDetails) {
             throw new Error("Could not fetch incharge details. Please try again.");
         }
 
         res.status(200).json({
-            ok: true, 
+            ok: true,
             inchargeId: inchargeDetails.id,
             name: inchargeDetails.name,
             email: inchargeDetails.email,
@@ -222,38 +340,172 @@ router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message: "An error occurred while fetching incharge details. Please try again."
+            error: err instanceof Error ? err.message : "An error occurred while fetching incharge details. Please try again."
         });
     }
 });
 
-router.delete("/remove/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+// admin can view list of all incharges who are working at a particular location
+router.get("/get/incharge/:locationId", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
-        const inchargeId = req.params.id;
-
-        if(!inchargeId) {
-            throw new Error("Invalid incharge id");
-        }
-
-        const isRemovalSucceeded = await prisma.user.delete({
+        const inchargesAtParticularLocation = await prisma.user.findMany({
             where: {
-                id: inchargeId
+                role: "ISSUE_INCHARGE",
+                issueIncharge: {
+                    locationId: parseInt(req.params.locationId)
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                issueIncharge: {
+                    select: {
+                        designation: true,
+                        rank: true
+                    }
+                },
+                createdAt: true
             }
         });
 
-        if(!isRemovalSucceeded) {
-            throw new Error("Could not remove incharge. Please try again.");
+        if (!inchargesAtParticularLocation) {
+            throw new Error("Could not fetch incharges at a particular location. Please try again.");
         }
 
-        res.status(202).json({
-            ok: true, 
-            message: "The incharge has been successfully removed.",
+        res.status(200).json({
+            ok: true,
+            incharges: inchargesAtParticularLocation.map((incharge) => ({
+                inchargeId: incharge.id,
+                name: incharge.name,
+                email: incharge.email,
+                phoneNumber: incharge.phoneNumber,
+                designation: incharge.issueIncharge?.designation,
+                rank: incharge.issueIncharge?.rank,
+                createdAt: incharge.createdAt
+            })),
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching incharges. Please try again."
+        });
+    }
+});
+
+router.get("/get/locations", async (req, res) => {
+    try {
+        const locations = await prisma.location.findMany({});
+
+        if (!locations) {
+            throw new Error("Could not fetch locations.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            locations
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching locations. Please try again."
+        });
+    }
+});
+
+router.get("/get/resolvers", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const resolvers = await prisma.user.findMany({
+            where: { role: "RESOLVER" },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+                createdAt: true,
+                password: false,
+                resolversComplaint: {
+                    select: {
+                        complaintId: true,
+                        pickedBy: true,
+                        actionTaken: true,
+                        resolvedAt: true
+                    }
+                },
+                resolver: {
+                    select: {
+                        occupation: true,
+                        location: true
+                    }
+                }
+            }
+        });
+
+        if (!resolvers) {
+            throw new Error("Could not fetch resolvers. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            resolvers
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching resolvers. Please try again."
+        });
+    }
+});
+
+router.get("/get/tags", async (req, res) => {
+    try {
+        const tags = await prisma.tag.findMany({});
+
+        if (!tags) {
+            throw new Error("Could not fetch tags. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            tags
         });
 
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while removing incharge. Please try again."
+            error: err instanceof Error ? err.message : "An error occurred while fetching tags. Please try again."
+        });
+    }
+});
+
+router.get("/get/users", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNumber: true,
+                role: true,
+                createdAt: true
+            }
+        });
+
+        if (!users) {
+            throw new Error("Could not fetch users. Please try again.");
+        }
+
+        res.status(200).json({
+            ok: true,
+            users
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while fetching users. Please try again."
         });
     }
 });
@@ -330,99 +582,33 @@ router.put("/update/incharge/:id", authMiddleware, authorizeMiddleware(Role), as
     }
 });
 
-router.post("/create/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.delete("/remove/incharge/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
-        const tags = req.body.tags; // { tags: Array<String> }
+        const inchargeId = req.params.id;
 
-        if(tags.length === 0) {
-            throw new Error("Invalid inputs");
+        if (!inchargeId) {
+            throw new Error("Invalid incharge id");
         }
 
-        const totalTags: any[] = [];
-
-        tags.forEach((tag: string) => {
-            totalTags.push({ tagName: tag });
-        });
-
-        const newTags = await prisma.tag.createMany({
-            data: totalTags
-        });
-
-        if(!newTags) {
-            throw new Error("Could not create tags. Please try again.");
-        }
-
-        res.status(201).json({
-            ok: true,
-            message: "Tags created successfully",
-        });
-        
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while creating tags. Please try again."
-        }); 
-    }
-});
-
-router.post("/create/locations", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-    try {
-        const locations = req.body.locations; // { locations: Array<{ location: String, locationName: String, locationBlock: String }> }
-
-        if(locations.length === 0) {
-            throw new Error("Invalid inputs");
-        }
-
-        const newLocations = await prisma.location.createMany({
-            data: locations
-        });
-
-        if(!newLocations) {
-            throw new Error("Could not create locations. Please try again.");
-        }
-
-        res.status(201).json({
-            ok: true,
-            message: "Locations created successfully",
-        });
-
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while creating locations. Please try again."
-        });
-    }
-});
-
-router.delete("/remove/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-    try {
-        const tags = req.body.tags; // { tags: Array<String> }
-
-        if(tags.length === 0) {
-            throw new Error("Invalid inputs");
-        }
-
-        const isTagsRemoved = await prisma.tag.deleteMany({
+        const isRemovalSucceeded = await prisma.user.delete({
             where: {
-                tagName: {
-                    in: tags
-                }
+                id: inchargeId
             }
         });
 
-        if(!isTagsRemoved) {
-            throw new Error("Could not remove tags. Please try again.");
+        if (!isRemovalSucceeded) {
+            throw new Error("Could not remove incharge. Please try again.");
         }
 
         res.status(202).json({
             ok: true,
-            message: "Tags removed successfully",
+            message: "The incharge has been successfully removed.",
         });
 
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while removing tags. Please try again."
+            error: err instanceof Error ? err.message : "An error occurred while removing incharge. Please try again."
         });
     }
 });
@@ -480,233 +666,38 @@ router.delete("/remove/locations", authMiddleware, authorizeMiddleware(Role), as
     }
 });
 
-router.get("/get/tags", async (req, res) => {
-    try {
-        const tags = await prisma.tag.findMany({});
 
-        if(!tags) {
-            throw new Error("Could not fetch tags. Please try again.");
+router.delete("/remove/tags", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+    try {
+        const tags = req.body.tags; // { tags: Array<String> }
+
+        if (tags.length === 0) {
+            throw new Error("Invalid inputs");
         }
 
-        res.status(200).json({
-            ok: true,
-            tags: tags.map((tag) => tag.tagName)
-        });
-
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching tags. Please try again."
-        });
-    }
-});
-
-router.get("/get/locations", async (req, res) => {
-    try {
-        const locations = await prisma.location.findMany({});
-
-        if(!locations) {
-            throw new Error("Could not fetch locations.");
-        }
-
-        res.status(200).json({
-            ok: true,
-            locations
-        });
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching locations. Please try again."
-        });
-    }
-});
-
-router.get("/get/incharges", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-    try {
-        const incharges = await prisma.user.findMany({
+        const isTagsRemoved = await prisma.tag.deleteMany({
             where: {
-                role: "ISSUE_INCHARGE"
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phoneNumber: true,
-                issueIncharge: {
-                    select: {
-                        location: {
-                            select: {
-                                location: true,
-                                locationName: true,
-                                locationBlock: true
-                            }
-                        },
-                        designation: true,
-                        rank: true
-                    }
-                },
-                createdAt: true
+                tagName: {
+                    in: tags
+                }
             }
         });
 
-        if(!incharges) {
-            throw new Error("Could not fetch incharges. Please try again.");
+        if (!isTagsRemoved) {
+            throw new Error("Could not remove tags. Please try again.");
         }
 
-        res.status(200).json({
+        res.status(202).json({
             ok: true,
-            incharges: incharges.map((incharge) => ({
-                inchargeId: incharge.id,
-                name: incharge.name,
-                email: incharge.email,
-                phoneNumber: incharge.phoneNumber,
-                location: `${incharge.issueIncharge?.location.location}-${incharge.issueIncharge?.location.locationName}-${incharge.issueIncharge?.location.locationBlock}`,
-                designation: incharge.issueIncharge?.designation,
-                rank: incharge.issueIncharge?.rank,
-                createdAt: incharge.createdAt
-            }))
+            message: "Tags removed successfully",
         });
 
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching incharges. Please try again."
+            error: err instanceof Error ? err.message : "An error occurred while removing tags. Please try again."
         });
     }
 });
-
-// router.get("/get/resolvers", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-//     try {
-//         const resolvers = await prisma.user.findMany({
-//             where: {
-//                 role: "RESOLVER"
-//             },
-//             select: {
-//                 id: true,
-//                 name: true,
-//                 email: true,
-//                 phoneNumber: true,
-//                 resolver: {
-//                     select: {
-//                         location: {
-//                             select: {
-//                                 location: true,
-//                                 locationName: true,
-//                                 locationBlock: true
-//                             }
-//                         },
-//                         designation: true,
-//                         rank: true
-//                     }
-//                 },
-//                 createdAt: true
-//             }
-//         });
-
-//         if(!resolvers) {
-//             throw new Error("Could not fetch resolvers. Please try again.");
-//         }
-
-//         res.status(200).json({
-//             ok: true,
-//             resolvers: resolvers.map((resolver) => ({
-//                 resolverId: resolver.id,
-//                 name: resolver.name,
-//                 email: resolver.email,
-//                 phoneNumber: resolver.phoneNumber,
-//                 location: `${resolver.resolver?.location.location}-${resolver.resolver?.location.locationName}-${resolver.resolver?.location.locationBlock}`,
-//                 designation: resolver.resolver?.designation,
-//                 rank: resolver.resolver?.rank,
-//                 createdAt: resolver.createdAt
-//             }))
-//         });
-
-//     } catch (err) {
-//         res.status(400).json({
-//             ok: false,
-//             error: err instanceof Error ? err.message : "An error occurred while fetching resolvers. Please try again."
-//         });
-//     }
-// });
-
-router.get("/get/users", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-    try {
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phoneNumber: true,
-                role: true,
-                createdAt: true
-            }
-        });
-
-        if(!users) {
-            throw new Error("Could not fetch users. Please try again.");
-        }
-
-        res.status(200).json({
-            ok: true,
-            users
-        });
-
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching users. Please try again."
-        });
-    }
-});
-
-// admin can view list of all incharges who are working at a particular location
-router.get("/get/incharge/:locationId", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
-    try {
-        const inchargesAtParticularLocation = await prisma.user.findMany({
-            where: {
-                role: "ISSUE_INCHARGE",
-                issueIncharge: {
-                    locationId: parseInt(req.params.locationId)
-                },
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phoneNumber: true,
-                issueIncharge: {
-                    select: {
-                        designation: true,
-                        rank: true
-                    }
-                },
-                createdAt: true
-            }
-        });
-
-        if(!inchargesAtParticularLocation) {
-            throw new Error("Could not fetch incharges at a particular location. Please try again.");
-        }
-
-        res.status(200).json({
-            ok: true,
-            incharges: inchargesAtParticularLocation.map((incharge) => ({
-                inchargeId: incharge.id,
-                name: incharge.name,
-                email: incharge.email,
-                phoneNumber: incharge.phoneNumber,
-                designation: incharge.issueIncharge?.designation,
-                rank: incharge.issueIncharge?.rank,
-                createdAt: incharge.createdAt
-            })),
-        });
-    } catch(err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching incharges. Please try again."
-        });
-    }
-});
-
 
 export const adminRouter = router;
