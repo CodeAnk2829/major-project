@@ -16,8 +16,20 @@ export const SignupSchema = z.object({
 });
 
 export const SigninSchema = z.object({
-    email: z.string(),
+    email: z.string().email(),
     phoneNumber: z.string().min(10).max(10).optional(),
     password: z.string(),
     role: z.nativeEnum(Role)
+});
+
+export const UpdateSchema = z.object({
+    name: z.string().min(3),
+    email: z.string().email(),
+    phoneNumber: z.string().min(10).max(10),
+});
+
+export const PasswordSchema = z.object({
+    currentPassword: z.string().min(6),
+    newPassword: z.string().min(6),
+    confirmPassword: z.string().min(6),
 });

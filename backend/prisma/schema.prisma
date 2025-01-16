@@ -53,7 +53,7 @@ model ComplaintDetail {
   id          String    @id @default(uuid())
   complaintId String    @unique
   complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  pickedBy    String    
+  pickedBy    String
   incharge    User      @relation(name: "Incharge", fields: [pickedBy], references: [id], onDelete: Cascade)
   assignedTo  String? // keep it optional
   resolver    User?     @relation(name: "Resolver", fields: [assignedTo], references: [id], onDelete: Cascade)
@@ -131,13 +131,13 @@ model User {
   issueIncharge      IssueIncharge?
   resolver           Resolver?
   notifications      Notification[]
-  upvote             Upvote?
+  upvote             Upvote[]
   createdAt          DateTime          @default(now())
 }
 
 model Upvote {
   id          String    @id @default(uuid())
-  userId      String    @unique
+  userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   complaintId String
   complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)

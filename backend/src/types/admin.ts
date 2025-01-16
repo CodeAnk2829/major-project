@@ -8,7 +8,7 @@ enum Role {
 export const InchargeSchema = z.object({
     name: z.string().min(3),
     email: z.string().email(),
-    phoneNumber: z.string().min(10).max(10),
+    phoneNumber: z.string().regex(/^[6-9]\d{9}$/),
     password: z.string().min(6),
     role: z.nativeEnum(Role),
     location: z.string().min(3),
@@ -23,7 +23,7 @@ export const RemoveSchema = z.object({
 export const ResolverSchema = z.object({
     name: z.string().min(3),
     email: z.string().email(),
-    phoneNumber: z.string().min(10).max(10),
+    phoneNumber: z.string().regex(/^[6-9]\d{9}$/),
     password: z.string().min(6),
     role: z.nativeEnum(Role),
     location: z.string().min(3),
@@ -31,12 +31,22 @@ export const ResolverSchema = z.object({
 });
 
 export const UpdateInchargeSchema = z.object({
-    name: z.string().min(3),
-    email: z.string().email(),
-    phoneNumber: z.string().min(10).max(10),
-    password: z.string().min(6),
-    role: z.nativeEnum(Role),
-    location: z.string(),
-    designation: z.string().min(3),
-    rank: z.number(),
+    name: z.string().min(3).optional(),
+    email: z.string().email().optional(),
+    phoneNumber: z.string().regex(/^[6-9]\d{9}$/).optional(),
+    password: z.string().min(6).optional(),
+    role: z.nativeEnum(Role).optional(),
+    location: z.string().optional(),
+    designation: z.string().min(3).optional(),
+    rank: z.number().optional(),
+});
+
+export const UpdateResolverSchema = z.object({
+    name: z.string().min(3).optional(),
+    email: z.string().email().optional(),
+    phoneNumber: z.string().regex(/^[6-9]\d{9}$/).optional(),
+    password: z.string().min(6).optional(),
+    role: z.nativeEnum(Role).optional(),
+    location: z.string().min(3).optional(),
+    occupation: z.string().min(3).optional(),
 });
