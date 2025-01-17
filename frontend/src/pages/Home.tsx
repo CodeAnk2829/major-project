@@ -12,7 +12,7 @@ const Home = () => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
       try {
-        const res = await fetch("/api/v1/complaint/all");
+        const res = await fetch("/api/v1/complaint/get-all");
         if (!res.ok) {
           throw new Error(
             "Failed to fetch complaints. Please try again later."
