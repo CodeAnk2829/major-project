@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import AdminSidebar from '../components/AdminSidebar'
-import { Alert, Button, Modal, Table, TextInput, Toast } from 'flowbite-react';
+import { Alert, Button, Modal, Spinner, Table, TextInput, Toast } from 'flowbite-react';
 import { GrCircleAlert } from 'react-icons/gr';
 import { HiCheck } from 'react-icons/hi';
 
@@ -71,6 +71,7 @@ function ManageLocations() {
   useEffect(() => {
     const fetchTags = async () => {
       try {
+        setLoading(true);
         const res = await fetch("/api/v1/admin/get/locations");
         if (!res.ok) {
           showError("Failed to fetch locations");
@@ -79,6 +80,8 @@ function ManageLocations() {
         setLocations(data.locations);
       } catch (error) {
         showError("An error occurred while fetching tags. ");
+      } finally{
+        setLoading(false);
       }
     };
     fetchTags();
@@ -138,9 +141,10 @@ function ManageLocations() {
         body: JSON.stringify({locations: [locationToDelete]})
       })
       const data = await res.json();
+      console.log(data);
       if(data.ok){
         setLocations(locations.filter((loc)=> loc !== locationToDelete));
-        setToastMessage("Location delete successfully!");
+        setToastMessage("Location deleted successfully!");
       }else{
         showError(data.error);
       }
@@ -187,12 +191,11 @@ function ManageLocations() {
           </Alert>
         )}
 
-        {/* Spinner
         {loading && (
           <div className="flex justify-center items-center mb-4">
-            <Spinner size="lg" aria-label="Loading..." />
+            <Spinner size="xl" aria-label="Loading..." />
           </div>
-        )} */}
+        )}
 
         {/* Main Content */}
         <div className="p-6">
@@ -235,7 +238,7 @@ function ManageLocations() {
               <Table.HeadCell>Actions</Table.HeadCell>
             </Table.Head>
             <Table.Body>
-              {locations.map((loc) => (
+              {locations && locations.length > 0 && locations.map((loc) => (
                 <Table.Row key={loc.id}>
                   <Table.Cell>{loc.location}</Table.Cell>
                   <Table.Cell>{loc.locationName || "-"}</Table.Cell>
