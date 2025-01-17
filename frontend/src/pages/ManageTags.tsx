@@ -100,8 +100,8 @@ function ManageTags() {
       return;
     }
 
-    if (tags.includes(newTag.trim())) {
-      showError("Tag already exists");
+    if (tags.some((tag) => tag.tagName.toLowerCase() === newTag.trim().toLowerCase())) {
+      showError("Tag already exists.");
       return;
     }
 
@@ -116,9 +116,15 @@ function ManageTags() {
       });
       const data = await res.json();
       if (data.ok) {
-        setTags([...tags, newTag.trim()]);
-        setNewTag("");
-        setToastMessage("Tag added successfully!");
+        const updatedRes = await fetch("/api/v1/admin/get/tags");
+        const updatedData = await updatedRes.json();
+        if (updatedData.ok) {
+          setTags(updatedData.tags); // Update state with the full tag list
+          setNewTag("");
+          setToastMessage("Tag added successfully!");
+        }else{
+          showError("Failed to add the tag");
+        }
       }
     } catch (error) {
       showError("An error occured while creating a new tag. ", error.message);
@@ -127,30 +133,32 @@ function ManageTags() {
     }
   };
 
-  const handleDeleteTag = async (tagToDelete: string) => {
-    setLoading(true);
+  const handleDeleteTag = async (tagName: string) => {
+    setLoading(true); 
     try {
       const res = await fetch("/api/v1/admin/remove/tags", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tags: [tagToDelete] }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: [tagName] }), // Send tag name(s) as an array
       });
+  
       const data = await res.json();
+      console.log("ON tag delete: ", data);
       if (data.ok) {
-        setTags(tags.filter((tag) => tag !== tagToDelete));
+        // Remove the deleted tag from the state
+        setTags(tags.filter((tag) => tag.tagName !== tagName));
         setToastMessage("Tag deleted successfully!");
-        setShowModal(false);
+        setShowModal(false); 
       } else {
-        showError(data.error || "Failed to delete the tag");
+        showError(data.error || "Failed to delete the tag.");
       }
-    } catch (error) {
-      showError("An error occurred while deleting the tag. ", error.message);
+    } catch (err) {
+      showError("An error occurred while deleting the tag.");
     } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading spinner
     }
   };
+  
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -213,13 +221,13 @@ function ManageTags() {
                 {tags &&
                   tags.length > 0 &&
                   tags.map((tag) => (
-                    <Table.Row key={tag}>
-                      <Table.Cell>{tag}</Table.Cell>
+                    <Table.Row key={tag.id}>
+                      <Table.Cell>{tag.tagName}</Table.Cell>
                       <Table.Cell>
                         <Button
                           color="failure"
                           onClick={() => {
-                            setTagToDelete(tag);
+                            setTagToDelete(tag.tagName);
                             setShowModal(true);
                           }}
                           disabled={loading}
