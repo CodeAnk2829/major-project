@@ -1,34 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import Home from './pages/Home'
+import SignIn from './pages/SignIn'
+import SignUp from './pages/SignUp'
+import PrivateRoute from './components/PrivateRoute'
+import OnlyIssueInchargePrivateRoute from './components/OnlyIssueInchargePrivateRoute'
+import OnlyAdminPrivateRoute from './components/OnlyAdminPrivateRoute'
+import Profile from './pages/Profile'
+import ComplaintPage from './pages/ComplaintPage'
+import RoleBasedRoute from './components/RoleBasedRoute'
+import IssueInchargeDashboard from './pages/IssueInchargeDashboard'
+import AdminDashboard from './pages/AdminDashboard'
+import Dashboard from './pages/Dashboard'
+import ManageComplaints from './pages/ManageComplaints'
+import ManageUsers from './pages/ManageUsers'
+import ManageTags from './pages/ManageTags'
+import ManageLocations from './pages/ManageLocations'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/sign-in" element={<SignIn/>}/>
+        <Route path="sign-up" element={<SignUp/>}/>
+        <Route path="/role-redirect" element={<RoleBasedRoute />} />
+        {/* Private Routes */}
+        <Route element={<PrivateRoute />}>
+          <Route path='/' element={<Home/>}/>
+          <Route path='/profile' element={<Profile/>}/>
+          <Route path='/complaint/:complaintId' element={<ComplaintPage />}/>
+          <Route path='/dashboard' element={<Dashboard/>}/>
+        </Route>
+
+        {/* Issue Incharge Routes */} 
+        <Route element={<OnlyIssueInchargePrivateRoute />}>
+        <Route
+          path="/issue-incharge/dashboard"
+          element={<IssueInchargeDashboard />}
+        />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route element={<OnlyAdminPrivateRoute />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/complaints" element={<ManageComplaints />} />
+          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/tags" element={<ManageTags />} />
+          <Route path="/admin/locations" element={<ManageLocations />} />
+        </Route>
+        <Route path="/not-authorized" element={<div>Not Authorized</div>} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
