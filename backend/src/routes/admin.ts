@@ -345,7 +345,7 @@ router.get("/get/incharge/:id", authMiddleware, authorizeMiddleware(Role), async
 });
 
 // admin can view list of all incharges who are working at a particular location
-router.get("/get/incharge/:locationId", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
+router.get("/get/incharge-location/:locationId", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
         const inchargesAtParticularLocation = await prisma.user.findMany({
             where: {
@@ -799,42 +799,30 @@ router.patch("/update/resolver/:id", authMiddleware, authorizeMiddleware(Role), 
     }
 });
 
-router.delete("/remove/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+router.patch("/update/user/password/:id", authMiddleware, authorizeMiddleware(Role), async (req, res) => {
     try {
-        const id = req.params.id; // anyone except admin
-    
-        // check whether the id is of admin's id
-        // restrict delete action on admin
-        const isAdmin = await prisma.user.findUnique({
-            where: { id },
-            select: { role: true }
-        });
-        
-        if(!isAdmin) {
-            throw new Error("Could not find user i.e. invalid id");
-        }
-         
-        if(isAdmin.role === "ADMIN") {
-            throw new Error("Restricted action.");
-        }
+        const userId = req.params.id;
+        const updateData = req.body; // { password: string }
+        const password = bcrypt.hashSync(updateData.password, 10);
 
-        const isRemovalSucceeded = await prisma.user.delete({
-            where: { id }
+        const isPasswordUpdated = await prisma.user.update({
+            where: { id: userId },
+            data: { password }
         });
 
-        if (!isRemovalSucceeded) {
-            throw new Error("Could not remove user. Please try again.");
+        if (!isPasswordUpdated) {
+            throw new Error("Could not update password. Please try again.");
         }
 
-        res.status(202).json({
+        res.status(200).json({
             ok: true,
-            message: "The user has been successfully removed.",
+            message: "Password updated successfully"
         });
 
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while removing incharge. Please try again."
+            error: err instanceof Error ? err.message : "An error occurred while updating password. Please try again."
         });
     }
 });
@@ -925,5 +913,45 @@ router.delete("/remove/tags", authMiddleware, authorizeMiddleware(Role), async (
     }
 });
 
+
+router.delete("/remove/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const id = req.params.id; // anyone except admin
+    
+        // check whether the id is of admin's id
+        // restrict delete action on admin
+        const isAdmin = await prisma.user.findUnique({
+            where: { id },
+            select: { role: true }
+        });
+        
+        if(!isAdmin) {
+            throw new Error("Could not find user i.e. invalid id");
+        }
+         
+        if(isAdmin.role === "ADMIN") {
+            throw new Error("Restricted action.");
+        }
+
+        const isRemovalSucceeded = await prisma.user.delete({
+            where: { id }
+        });
+
+        if (!isRemovalSucceeded) {
+            throw new Error("Could not remove user. Please try again.");
+        }
+
+        res.status(202).json({
+            ok: true,
+            message: "The user has been successfully removed.",
+        });
+
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while removing incharge. Please try again."
+        });
+    }
+});
 
 export const adminRouter = router;

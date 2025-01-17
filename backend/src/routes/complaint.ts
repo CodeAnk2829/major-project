@@ -165,8 +165,82 @@ router.post("/create", authMiddleware, authorizeMiddleware(Role), async (req: an
     }
 });
 
+// upvote a complaint
+router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+    try {
+        const complaintId: string = req.params.id;
+        const userId: string = req.user.id;
+
+        if (!userId) {
+            throw new Error("Unauthorized");
+        }
+
+        if (!complaintId) {
+            throw new Error("No complaint id provided");
+        }
+        // first check an user has already upvoted
+        const hasUpvoted = await prisma.upvote.findFirst({
+            where: { userId, complaintId },
+            select: { id: true }
+        });
+
+        let finalAction: any;
+
+        if (!hasUpvoted) {
+            const addUpvote = await prisma.upvote.create({
+                data: {
+                    userId,
+                    complaintId
+                },
+            });
+
+            if (!addUpvote) {
+                throw new Error("Could not upvote. Please try again");
+            }
+            finalAction = { increment: 1 };
+        } else {
+            const removeUpvote = await prisma.upvote.delete({
+                where: {
+                    id: hasUpvoted.id
+                }
+            });
+
+            if (!removeUpvote) {
+                throw new Error("Could not remove upvote. Please try again");
+            }
+            finalAction = { decrement: 1 };
+        }
+
+        // count total upvotes for a complaint
+        const totalUpvotes = await prisma.complaintDetail.update({
+            where: { complaintId },
+            data: {
+                upvotes: finalAction
+            },
+            select: {
+                upvotes: true
+            }
+        });
+
+        if (!totalUpvotes) {
+            throw new Error("Could not count total upvotes for the complaint");
+        }
+
+        res.status(200).json({
+            ok: true,
+            upvotes: totalUpvotes.upvotes,
+            hasUpvoted: hasUpvoted ? false : true
+        });
+    } catch (err) {
+        res.status(400).json({
+            ok: false,
+            error: err instanceof Error ? err.message : "An error occurred while voting"
+        });
+    }
+});
+
 // get all complaints
-router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+router.get("/get-all", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const userId = req.user.id;
 
@@ -268,128 +342,8 @@ router.get("/all", authMiddleware, authorizeMiddleware(Role), async (req: any, r
     }
 });
 
-// get complaint by id
-router.get("/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
-    try {
-        const userId = req.user.id;
-        const complaintId = req.params.id;
-
-        if(!userId) {
-            throw new Error("Unauthorized");
-        }
-
-        const complaint = await prisma.complaint.findUnique({
-            where: {
-                id: complaintId
-            },
-            include: {
-                attachments: {
-                    select: {
-                        id: true,
-                        imageUrl: true
-                    }
-                },
-                tags: {
-                    select: {
-                        tags: {
-                            select: {
-                                id: true,
-                                tagName: true
-                            }
-                        }
-                    }
-                },
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-                complaintDetails: {
-                    select: {
-                        upvotes: true,
-                        actionTaken: true,
-                        incharge: {
-                            select: {
-                                id: true,
-                                name: true,
-                                email: true,
-                                issueIncharge: {
-                                    select: {
-                                        designation: true,
-                                        location: true,
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        if(!complaint) {
-            throw new Error("Could not fetch the required complaint");
-        }
-
-        const upvote = await prisma.upvote.findFirst({
-            where: { userId, complaintId },
-            select: { id: true }
-        });
-
-        let hasUpvoted: boolean = false;
-
-        if(upvote) {
-            hasUpvoted = true;
-        }
-
-        let complaintResponse = complaint;
-
-        if (complaint.postAsAnonymous) {
-            complaintResponse = {
-                ...complaint,
-                user: {
-                    id: complaint.user.id,
-                    name: "Anonymous",
-                }
-            }
-        }
-
-        const location = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.location;
-        const locationName = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationName;
-        const locationBlock = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationBlock;
-
-        res.status(201).json({
-            ok: true,
-            message: "Complaint created successfully",
-            complaintId: complaintResponse.id,
-            title: complaintResponse.title,
-            description: complaintResponse.description,
-            access: complaintResponse.access,
-            postAsAnonymous: complaintResponse.postAsAnonymous,
-            userName: complaintResponse.user.name,
-            userId: complaintResponse.user.id,
-            hasUpvoted,
-            status: complaintResponse.status,
-            inchargeId: complaintResponse.complaintDetails?.incharge.id,
-            inchargeName: complaintResponse.complaintDetails?.incharge.name,
-            inchargeDesignation: complaintResponse.complaintDetails?.incharge.issueIncharge?.designation,
-            location: `${location}-${locationName}-${locationBlock}`,
-            upvotes: complaintResponse.complaintDetails?.upvotes,
-            actionTaken: complaintResponse.complaintDetails?.actionTaken,
-            attachments: complaintResponse.attachments,
-            tags: complaintResponse.tags,
-            createdAt: complaintResponse.createdAt,
-        });
-    } catch (err) {
-        res.status(400).json({
-            ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while fetching complaint"
-        });
-    }
-});
-
 // get an user's complaints
-router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+router.get("/get-user/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
         const userId = req.params.id;
         const loggedInUserId = req.user.id;
@@ -477,76 +431,122 @@ router.get("/user/:id", authMiddleware, authorizeMiddleware(Role), async (req: a
     }
 });
 
-// upvote a complaint
-router.post("/upvote/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
+// get a complaint by id
+router.get("/get-complaint/:id", authMiddleware, authorizeMiddleware(Role), async (req: any, res: any) => {
     try {
-        const complaintId: string = req.params.id;
-        const userId: string = req.user.id;
+        const userId = req.user.id;
+        const complaintId = req.params.id;
 
-        if(!userId) {
+        if (!userId) {
             throw new Error("Unauthorized");
         }
 
-        if(!complaintId) {
-            throw new Error("No complaint id provided");
+        const complaint = await prisma.complaint.findUnique({
+            where: {
+                id: complaintId
+            },
+            include: {
+                attachments: {
+                    select: {
+                        id: true,
+                        imageUrl: true
+                    }
+                },
+                tags: {
+                    select: {
+                        tags: {
+                            select: {
+                                id: true,
+                                tagName: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                complaintDetails: {
+                    select: {
+                        upvotes: true,
+                        actionTaken: true,
+                        incharge: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                issueIncharge: {
+                                    select: {
+                                        designation: true,
+                                        location: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!complaint) {
+            throw new Error("Could not fetch the required complaint");
         }
-        // first check an user has already upvoted
-        const hasUpvoted = await prisma.upvote.findFirst({
+
+        const upvote = await prisma.upvote.findFirst({
             where: { userId, complaintId },
             select: { id: true }
         });
 
-        let finalAction: any;
-        
-        if(!hasUpvoted) {
-            const addUpvote = await prisma.upvote.create({
-                data: { 
-                    userId,
-                    complaintId
-                },
-            });
+        let hasUpvoted: boolean = false;
 
-            if(!addUpvote) {
-                throw new Error("Could not upvote. Please try again");
-            }
-            finalAction = { increment: 1 };
-        } else {
-            const removeUpvote = await prisma.upvote.delete({
-                where: { 
-                    id: hasUpvoted.id
+        if (upvote) {
+            hasUpvoted = true;
+        }
+
+        let complaintResponse = complaint;
+
+        if (complaint.postAsAnonymous) {
+            complaintResponse = {
+                ...complaint,
+                user: {
+                    id: complaint.user.id,
+                    name: "Anonymous",
                 }
-            });
-
-            if(!removeUpvote) {
-                throw new Error("Could not remove upvote. Please try again");
             }
-            finalAction = { decrement: 1 };
         }
 
-        // count total upvotes for a complaint
-        const totalUpvotes = await prisma.complaintDetail.update({
-            where: { complaintId },
-            data: {
-                upvotes: finalAction
-            },
-            select: {
-                upvotes: true
-            }
-        });
+        const location = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.location;
+        const locationName = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationName;
+        const locationBlock = complaintResponse.complaintDetails?.incharge.issueIncharge?.location.locationBlock;
 
-        if(!totalUpvotes) {
-            throw new Error("Could not count total upvotes for the complaint");
-        }
-
-        res.status(200).json({
+        res.status(201).json({
             ok: true,
-            upvotes: totalUpvotes.upvotes,
-            hasUpvoted: hasUpvoted ? false : true
+            message: "Complaint created successfully",
+            complaintId: complaintResponse.id,
+            title: complaintResponse.title,
+            description: complaintResponse.description,
+            access: complaintResponse.access,
+            postAsAnonymous: complaintResponse.postAsAnonymous,
+            userName: complaintResponse.user.name,
+            userId: complaintResponse.user.id,
+            hasUpvoted,
+            status: complaintResponse.status,
+            inchargeId: complaintResponse.complaintDetails?.incharge.id,
+            inchargeName: complaintResponse.complaintDetails?.incharge.name,
+            inchargeDesignation: complaintResponse.complaintDetails?.incharge.issueIncharge?.designation,
+            location: `${location}-${locationName}-${locationBlock}`,
+            upvotes: complaintResponse.complaintDetails?.upvotes,
+            actionTaken: complaintResponse.complaintDetails?.actionTaken,
+            attachments: complaintResponse.attachments,
+            tags: complaintResponse.tags,
+            createdAt: complaintResponse.createdAt,
         });
     } catch (err) {
         res.status(400).json({
             ok: false,
-            error: err instanceof Error ? err.message : "An error occurred while voting"
+            error: err instanceof Error ? err.message : "An error occurred while fetching complaint"
         });
     }
 });
