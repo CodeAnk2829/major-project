@@ -32,7 +32,7 @@ function Dashboard() {
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/v1/complaint/user/${currentUser.id}`
+          `/api/v1/complaint/get-user/${currentUser.id}`
         );
         const data = await response.json();
         if (!data.ok) {

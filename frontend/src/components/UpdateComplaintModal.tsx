@@ -20,15 +20,18 @@ import { HiExclamation } from "react-icons/hi";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 
+interface UpdateComplaintModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  complaintIdProp: string;
+  onComplaintUpdate?: (updatedComplaint: any) => void;
+}
 const UpdateComplaintModal = ({
   isOpen,
   onClose,
   complaintIdProp,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  complaintIdProp: any;
-}) => {
+  onComplaintUpdate,
+}: UpdateComplaintModalProps) => {
   const [formData, setFormData] = useState<any>(null);
   const [file, setFile] = useState<any[]>([]);
   const [imageUploadProgress, setImageUploadProgress] = useState<number | null>(
@@ -60,9 +63,10 @@ const UpdateComplaintModal = ({
   const navigate = useNavigate();
   useEffect(() => {
     const fetchComplaint = async () => {
+      if (!isOpen || !complaintIdProp) return;
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/complaint/${id}`);
+        const response = await fetch(`/api/v1/complaint/get-complaint/${id}`);
         const data = await response.json();
         console.log(data);
         setComplaint(data);
@@ -75,7 +79,7 @@ const UpdateComplaintModal = ({
     };
 
     fetchComplaint();
-  }, [id]);
+  }, [isOpen, complaintIdProp]);
 
   useEffect(() => {
     if (complaint) {
@@ -355,7 +359,7 @@ const UpdateComplaintModal = ({
       access: formData.access === "PRIVATE" ? "PUBLIC" : "PRIVATE",
     });
   };
-  const resetForm =()=>{
+  const resetForm = () => {
     setFormData({
       complaintId: complaint.complaintId,
       title: complaint.title,
@@ -373,14 +377,33 @@ const UpdateComplaintModal = ({
     setChildLocation(child || "");
     setBlockLocation(block || "");
     setError(null);
-  }
+  };
 
   const handleModalClose = () => {
     resetForm();
+    setFormData(null);
+    setError(null);
+    setIsEditingLocation(false);
+    setFile([]);
+    setImageUploadProgress(null);
+    setImageUploadError(null);
     onClose();
-    handleEditLocation();
   };
-  if (!isOpen || !formData || loading) return null;
+  if (!isOpen || loading) return null;
+
+  if (!complaint || !formData) {
+    return (
+      <Modal show={isOpen} onClose={handleModalClose}>
+        <Modal.Header>Error</Modal.Header>
+        <Modal.Body>
+          <Alert color="failure">
+            Failed to load complaint data. Please try again.
+          </Alert>
+        </Modal.Body>
+      </Modal>
+    );
+  }
+  console.log(isOpen);
   return (
     <div>
       <Modal show={isOpen} size="5xl" onClose={handleModalClose} popup>
@@ -420,158 +443,159 @@ const UpdateComplaintModal = ({
               <div className="flex justify-between gap-8">
                 {!isEditingLocation ? (
                   <div className="flex mt-2">
-                    <Badge color="gray" className="float-right">{complaint.location}</Badge>{" "}
+                    <Badge color="gray" className="float-right">
+                      {complaint.location}
+                    </Badge>{" "}
                     <AiOutlineEdit onClick={handleEditLocation} />
                   </div>
-                
                 ) : (
-                    <div className="flex-1">
-                      {/* Location - Parent */}
-                      <div className="mb-4">
+                  <div className="flex-1">
+                    {/* Location - Parent */}
+                    <div className="mb-4">
+                      <Label
+                        htmlFor="parentLocation"
+                        value="Location Category"
+                      />
+                      <Select
+                        id="parentLocation"
+                        value={parentLocation}
+                        onChange={handleParentChange}
+                        required
+                        theme={customThemeSelect}
+                        color="gray"
+                      >
+                        <option value="">Select Category</option>
+                        {Object.keys(locationData).map((parent, index) => (
+                          <option key={index} value={parent}>
+                            {parent}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {/* Location - Child */}
+                    {parentLocation && parentLocation !== "Other" && (
+                      <div>
                         <Label
-                          htmlFor="parentLocation"
-                          value="Location Category"
+                          htmlFor="childLocation"
+                          value="Specific Location"
                         />
                         <Select
-                          id="parentLocation"
-                          value={parentLocation}
-                          onChange={handleParentChange}
+                          id="childLocation"
+                          value={childLocation}
+                          onChange={handleChildChange}
                           required
                           theme={customThemeSelect}
-                          color="gray"
                         >
-                          <option value="">Select Category</option>
-                          {Object.keys(locationData).map((parent, index) => (
-                            <option key={index} value={parent}>
-                              {parent}
-                            </option>
-                          ))}
+                          <option value="">Select Specific Location</option>
+                          {Object.keys(locationData[parentLocation]).map(
+                            (child, index) => (
+                              <option key={index} value={child}>
+                                {child}
+                              </option>
+                            )
+                          )}
                         </Select>
                       </div>
-
-                      {/* Location - Child */}
-                      {parentLocation && parentLocation !== "Other" && (
+                    )}
+                    {(parentLocation === "Hostel" ||
+                      parentLocation === "Department") &&
+                      childLocation &&
+                      locationData[parentLocation][childLocation] && (
                         <div>
-                          <Label
-                            htmlFor="childLocation"
-                            value="Specific Location"
-                          />
+                          <Label htmlFor="block" value="Block" />
                           <Select
-                            id="childLocation"
-                            value={childLocation}
-                            onChange={handleChildChange}
+                            id="block"
+                            onChange={handleBlockChange}
                             required
                             theme={customThemeSelect}
+                            value={blockLocation}
                           >
-                            <option value="">Select Specific Location</option>
-                            {Object.keys(locationData[parentLocation]).map(
-                              (child, index) => (
-                                <option key={index} value={child}>
-                                  {child}
+                            <option value="">Select Block</option>
+                            {locationData[parentLocation][childLocation].map(
+                              (block, index) => (
+                                <option key={index} value={block}>
+                                  {block}
                                 </option>
                               )
                             )}
                           </Select>
                         </div>
                       )}
-                      {(parentLocation === "Hostel" ||
-                        parentLocation === "Department") &&
-                        childLocation &&
-                        locationData[parentLocation][childLocation] && (
-                          <div>
-                            <Label htmlFor="block" value="Block" />
-                            <Select
-                              id="block"
-                              onChange={handleBlockChange}
-                              required
-                              theme={customThemeSelect}
-                              value={blockLocation}
-                            >
-                              <option value="">Select Block</option>
-                              {locationData[parentLocation][childLocation].map(
-                                (block, index) => (
-                                  <option key={index} value={block}>
-                                    {block}
-                                  </option>
-                                )
-                              )}
-                            </Select>
-                          </div>
-                        )}
-                      {parentLocation === "Other" && (
-                        <div>
-                          <Label
-                            htmlFor="childLocation"
-                            value="Specific Location"
-                          />
-                          <Select
-                            id="childLocation"
-                            value={formData.location}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                location: e.target.value,
-                              })
-                            }
-                            required
-                          >
-                            <option value="">Select Specific Location</option>
-                            {locationData[parentLocation].map(
-                              (location, index) => (
-                                <option key={index} value={location}>
-                                  {location}
-                                </option>
-                              )
-                            )}
-                          </Select>
-                        </div>
-                      )}
-                    </div>
+                    {parentLocation === "Other" && (
+                      <div>
+                        <Label
+                          htmlFor="childLocation"
+                          value="Specific Location"
+                        />
+                        <Select
+                          id="childLocation"
+                          value={formData.location}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              location: e.target.value,
+                            })
+                          }
+                          required
+                        >
+                          <option value="">Select Specific Location</option>
+                          {locationData[parentLocation].map(
+                            (location, index) => (
+                              <option key={index} value={location}>
+                                {location}
+                              </option>
+                            )
+                          )}
+                        </Select>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Right Side - Tags */}
                 <div className="flex-1">
-                      <Label htmlFor="tags" value="Tags" />
-                      <Select
-                        id="tags"
-                        value=""
-                        onChange={handleTagSelection}
-                        theme={customThemeSelect}
-                        color="gray"
+                  <Label htmlFor="tags" value="Tags" />
+                  <Select
+                    id="tags"
+                    value=""
+                    onChange={handleTagSelection}
+                    theme={customThemeSelect}
+                    color="gray"
+                  >
+                    <option value="">Select a Tag</option>
+                    {Object.entries(tagMapping).map(([id, name]) => (
+                      <option key={id} value={id}>
+                        {name}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.tags.map((tagId: number) => (
+                      <span
+                        key={tagId}
+                        className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2 mb-2"
                       >
-                        <option value="">Select a Tag</option>
-                        {Object.entries(tagMapping).map(([id, name]) => (
-                          <option key={id} value={id}>
-                            {name}
-                          </option>
-                        ))}
-                      </Select>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.tags.map((tagId: number) => (
-                          <span
-                            key={tagId}
-                            className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2 mb-2"
-                          >
-                            {tagMapping[tagId]}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  tags: formData.tags.filter(
-                                    (id: number) => id !== tagId
-                                  ),
-                                })
-                              }
-                              className="ml-2 text-blue-500 hover:text-blue-700"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    </div>
+                        {tagMapping[tagId]}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.filter(
+                                (id: number) => id !== tagId
+                              ),
+                            })
+                          }
+                          className="ml-2 text-blue-500 hover:text-blue-700"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-4 items-center justify-between border-4 border-[rgb(60,79,131)] border-dotted p-3">
                 <FileInput
                   type="file"

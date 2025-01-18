@@ -15,7 +15,6 @@ function ComplaintPage() {
   const [error, setError] = useState<string | null>(null);
   const { currentUser } = useSelector((state: any) => state.user);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [formData, setFormData] = useState(null);
   const [hasUserUpvoted, setHasUserUpvoted] = useState(false);
   const navigate = useNavigate();
   const statusColors: Record<string, string> = {
