@@ -70,15 +70,8 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   onUpdate,
   onDelete,
 }) => {
-  // useEffect(() => {
-  //   const upvotedIds = upvotedComplaints.map((item) => item.complaintId);
-  //   const isUpvoted = upvotedIds.includes(complaint.id);
-  //   setHasUserUpvoted(isUpvoted);
-  //   console.log("Current complaint ID:", complaint.id, " Upvoted complaints: ", isUpvoted);
-  //   // console.log("complaint id: ", complaint.id, " hasupvoted: ", hasUserUpvoted);
-  // }, [upvotedComplaints, complaint.id]);
 
-  const isUpvoted = upvotedComplaints.includes(complaint.id);
+    const isUpvoted = upvotedComplaints?.includes(complaint.id || false);
   const statusColors: Record<string, string> = {
     PENDING: "warning",
     ASSIGNED: "indigo",
@@ -235,7 +228,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
             <Button
               color="light"
               disabled={complaint.status !== "PENDING"}
-              onClick={() => onUpdate && onUpdate(complaint.id)}
+              onClick={() => onUpdate?.(complaint.id)}
             >
               Update
             </Button>
