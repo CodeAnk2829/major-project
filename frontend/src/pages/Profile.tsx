@@ -78,7 +78,7 @@ function Profile() {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("", {
+      const res = await fetch("/api/v1/user/auth/signout", {
         method: "POST",
       });
       const data = await res.json();
