@@ -7,7 +7,8 @@ import SideBar from "../components/SideBar";
 const Home = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [upvotedComplaints, setUpvotedComplaints] = useState([]);
+  const [upvotedComplaints, setUpvotedComplaints] = useState<string[]>([]);
+
   useEffect(() => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
@@ -23,8 +24,7 @@ const Home = () => {
           throw new Error("Unexpected response format.");
         }
         setComplaints(data.complaintResponse);
-        setUpvotedComplaints(data.upvotedComplaints)
-        console.log("upvoted: ",data);
+        setUpvotedComplaints(data.upvotedComplaints.map((c: any) => c.complaintId));
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -35,6 +35,45 @@ const Home = () => {
 
     fetchComplaints();
   }, []);
+
+  const handleUpvote = async (complaintId) => {
+    console.log("Upvote clicked for complaint with complaint id: ", complaintId);
+    try {
+      const res = await fetch(`/api/v1/complaint/upvote/${complaintId}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((comp) =>
+            comp.id === complaintId
+              ? {
+                  ...comp,
+                  complaintDetails: {
+                    ...comp.complaintDetails,
+                    upvotes: data.upvotes,
+                  },
+                }
+              : comp
+          )
+        );
+
+        setUpvotedComplaints((prevUpvoted) => {
+          if (data.hasUpvoted) {
+            return [...prevUpvoted, complaintId];
+          } else {
+            return prevUpvoted.filter((id) => id !== complaintId);
+          }
+        });
+      } else {
+        console.error("Failed to toggle upvote:", data.error);
+      }
+    } catch (error) {
+      console.error("Failed to upvote the complaint:", error);
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -67,6 +106,7 @@ const Home = () => {
                       complaint={complaint}
                       showProfile={true}
                       showUpvote={true}
+                      handleUpvote={handleUpvote}
                       upvotedComplaints={upvotedComplaints}
                       showActions={false}
                       showBadges={false}

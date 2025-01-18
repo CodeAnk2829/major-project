@@ -1,5 +1,5 @@
 import { Badge, Button, Carousel } from "flowbite-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
@@ -44,6 +44,8 @@ interface ComplaintCardProps {
   showUpvote: boolean;
   showActions: boolean;
   showBadges: boolean;
+  handleUpvote?: (id: string) => void;
+  upvotedComplaints: string[];
   onUpdate?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
@@ -63,56 +65,25 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   showUpvote,
   showActions,
   showBadges,
+  handleUpvote,
+  upvotedComplaints,
   onUpdate,
   onDelete,
 }) => {
-  const [hasUserLiked, setHasUserLiked] = useState(false);
-  const [likes, setLikes] = useState(complaint.complaintDetails.upvotes);
+  // useEffect(() => {
+  //   const upvotedIds = upvotedComplaints.map((item) => item.complaintId);
+  //   const isUpvoted = upvotedIds.includes(complaint.id);
+  //   setHasUserUpvoted(isUpvoted);
+  //   console.log("Current complaint ID:", complaint.id, " Upvoted complaints: ", isUpvoted);
+  //   // console.log("complaint id: ", complaint.id, " hasupvoted: ", hasUserUpvoted);
+  // }, [upvotedComplaints, complaint.id]);
+
+  const isUpvoted = upvotedComplaints.includes(complaint.id);
   const statusColors: Record<string, string> = {
     PENDING: "warning",
     ASSIGNED: "indigo",
     RESOLVED: "success",
     NOT_RESOLVED: "failure",
-  };
-
-  const handleToggleUpvote = async () => {
-    setHasUserLiked((hasUserLiked) => !hasUserLiked);
-    handleUpvote();
-    setLikes((likes) => (hasUserLiked ? likes - 1 : likes + 1));
-  };
-
-  //TODO : handleUpvote - check for hasUserLiked from response
-  const handleUpvote = async () => {
-    console.log("Upvote clicked");
-    // try {
-    //   const res = await fetch(`/api/v1/complaint/upvote/${id}`, {
-    //     method: hasUpvoted ? "POST" : "DELETE",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     credentials: "include",
-    //   });
-    //   const data = await res.json();
-
-    //   if (!res.ok) {
-    //     throw new Error(data.error || "Failed to update upvote.");
-    //   }
-
-    //   // Update local complaint data
-    //   setComplaints((prevComplaints) =>
-    //     prevComplaints.map((complaint) =>
-    //       complaint.id === id
-    //         ? {
-    //             ...complaint,
-    //             upvotes: data.totalUpvotes || 0,
-    //             hasUpvoted,
-    //           }
-    //         : complaint
-    //     )
-    //   );
-    // } catch (error) {
-    //   console.error("Error updating upvote:", error.message);
-    // }
   };
 
   const createdAtDisplay =
@@ -152,6 +123,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
       snap: "snap-x",
     },
   };
+
   return (
     <div className="border rounded-lg shadow-md bg-white flex flex-col">
       {/* Header */}
@@ -171,7 +143,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
       )}
 
       {/* Image Carousel */}
-      {complaint.attachments.length > 0 ? (
+      {complaint.attachments.length > 0 && (
         <Carousel
           slide={false}
           className="mt-4 h-64"
@@ -182,13 +154,9 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
               key={attachment.id}
               src={attachment.imageUrl}
               alt="Complaint Attachment"
-              className="object-scale-down"
+              className="h-auto w-auto"
             />
           ))}
-        </Carousel>
-      ) : (
-        <Carousel slide={false} className="mt-4 h-64" theme={customThemeCarousel}>
-          <img src='default-complaint.jpg' alt='default complaint' className="object-scale-down"/>
         </Carousel>
       )}
 
@@ -219,16 +187,20 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
             </Badge>
           ))}
         </div>
-        {showBadges && (<div className="flex mt-2">
-          <Badge color={complaint.access === "PUBLIC" ? "success" : "warning"}>
-            {complaint.access}
-          </Badge>
-          {complaint.postAsAnonymous && (
-            <Badge color="gray" className="ml-2">
-              Anonymous
+        {showBadges && (
+          <div className="flex mt-2">
+            <Badge
+              color={complaint.access === "PUBLIC" ? "success" : "warning"}
+            >
+              {complaint.access}
             </Badge>
-          )}
-        </div>)}
+            {complaint.postAsAnonymous && (
+              <Badge color="gray" className="ml-2">
+                Anonymous
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
@@ -244,13 +216,17 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
           <div className="flex items-center">
             <button
               className={`text-xl ${
-                hasUserLiked ? "text-blue-600" : "text-gray-500"
+                isUpvoted ? "text-blue-800" : "text-gray-600"
               } hover:text-blue-800`}
-              onClick={handleToggleUpvote}
+              onClick={() => {
+                handleUpvote(complaint.id);
+              }}
             >
-              {hasUserLiked ? <BiSolidUpvote /> : <BiUpvote />}
+              {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
             </button>
-            <span className="ml-2 text-gray-600 text-sm">{likes} upvotes</span>
+            <span className="ml-2 text-gray-600 text-sm">
+              {complaint.complaintDetails.upvotes} upvotes
+            </span>
           </div>
         )}
 
