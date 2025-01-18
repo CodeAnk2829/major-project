@@ -16,8 +16,7 @@ function ComplaintPage() {
   const { currentUser } = useSelector((state: any) => state.user);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [formData, setFormData] = useState(null);
-  const [hasUserLiked, setHasUserLiked] = useState(false);
-  const [likes, setLikes] = useState(0);
+  const [hasUserUpvoted, setHasUserUpvoted] = useState(false);
   const navigate = useNavigate();
   const statusColors: Record<string, string> = {
     PENDING: "warning",
@@ -47,11 +46,11 @@ function ComplaintPage() {
     const fetchComplaint = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/complaint/${id}`);
+        const response = await fetch(`/api/v1/complaint/get-complaint/${id}`);
         const data = await response.json();
         console.log(data);
         setComplaint(data);
-        setLikes(data.upvotes);
+        setHasUserUpvoted(data.hasUpvoted);
       } catch (err) {
         console.error("Error fetching complaint:", err);
         setError("Failed to load complaint. Please try again later.");
@@ -69,15 +68,35 @@ function ComplaintPage() {
         <Spinner size="xl" className="fill-[rgb(60,79,131)]"/>
       </div>
     );
-  const handleUpvote = async () => {
-    console.log("Upvote clicked");
-    //POST
-  };
-  const handleToggleUpvote = async () => {
-    setHasUserLiked((hasUserLiked) => !hasUserLiked);
-    handleUpvote();
-    setLikes((likes) => (hasUserLiked ? likes - 1 : likes + 1));
-  };
+    if (error) {
+      return (
+        <div className="flex justify-center items-center min-h-screen">
+          <p className="text-red-500">{error}</p>
+        </div>
+      );
+    }
+    const handleUpvote = async () => {
+      try {
+        const res = await fetch(`/api/v1/complaint/upvote/${id}`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = await res.json();
+  
+        if (data.ok) {
+          // Update the complaint with new upvote count and status
+          setComplaint(prev => ({
+            ...prev,
+            upvotes: data.upvotes
+          }));
+          setHasUserUpvoted(data.hasUpvoted);
+        } else {
+          console.error("Failed to toggle upvote:", data.error);
+        }
+      } catch (error) {
+        console.error("Failed to upvote the complaint:", error);
+      }
+    };
 
   const handleUpdate = async () => {
     console.log("complaint update clicked");
@@ -151,10 +170,12 @@ function ComplaintPage() {
         </p>
         <p className="flex">
         <button
-            className={`text-xl ${"text-gray-500"} hover:text-gray-700`}
-            onClick={handleToggleUpvote}
+            className={`text-xl ${
+              hasUserUpvoted ? "text-blue-800" : "text-gray-600"
+            } hover:text-blue-800`}
+            onClick={handleUpvote}
           >
-            {hasUserLiked ? <BiSolidUpvote /> : <BiUpvote />}
+            {hasUserUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
           </button>
           <span className="ml-2 text-gray-600 text-sm">
             {complaint && complaint.upvotes} upvotes
