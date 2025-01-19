@@ -9,6 +9,7 @@ const router = Router();
 enum Role {
     FACULTY = "FACULTY",
     STUDENT = "STUDENT",
+    ADMIN = "ADMIN"
 }
 
 // create a complaint
