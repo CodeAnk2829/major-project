@@ -3,6 +3,8 @@ import SearchBar from "../components/SearchBar";
 import ComplaintCard from "../components/ComplaintCard";
 import { Spinner } from "flowbite-react";
 import SideBar from "../components/SideBar";
+import ScrollToTop from "react-scroll-to-top";
+import { FaChevronUp } from "react-icons/fa";
 
 const Home = () => {
   const [complaints, setComplaints] = useState([]);
@@ -99,6 +101,7 @@ const Home = () => {
                 <h2 className="text-2xl font-semibold text-center">
                   Recent Complaints
                 </h2>
+                <ScrollToTop smooth component={<FaChevronUp />} className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"/>
                 <div className="flex flex-col gap-4">
                   {complaints.map((complaint) => (
                     <ComplaintCard
