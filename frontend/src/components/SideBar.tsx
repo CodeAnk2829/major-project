@@ -92,7 +92,7 @@ const SideBar = () => {
               <li
                     className={`flex rounded-md p-3.5 cursor-pointer text-gray-800 hover:bg-gray-100 items-center gap-x-4 mt-3 text-2xl ${
                       location.pathname === option.path
-                        ? "bg-[rgb(60,79,131)] text-white"
+                        ? "bg-[rgb(60,79,131)] text-white hover:text-slate-800"
                         : "text-gray-800 hover:bg-gray-100"
                     }`}
               >
