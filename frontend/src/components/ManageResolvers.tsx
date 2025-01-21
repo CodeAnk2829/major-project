@@ -327,7 +327,7 @@ function ManageResolvers() {
         onClick={() => setShowAddModal(true)}
         className="mb-4"
       >
-        Add New Issue Incharge
+        Add New Resolver
       </Button>
       {/* loading Spinner */}
       {loading && (
