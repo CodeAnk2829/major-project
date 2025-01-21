@@ -5,6 +5,7 @@ import { Alert, Button, Modal, Spinner, TextInput } from "flowbite-react";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { signOutSuccess } from "../redux/user/userSlice";
+import ComplaintCard from "../components/ComplaintCard";
 
 function Profile() {
   const { currentUser } = useSelector((state) => state.user);
@@ -19,10 +20,12 @@ function Profile() {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [upvotedComplaints, setUpvotedComplaints] = useState([]);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
     fetchUserProfile();
+    fetchUpvotedComplaints();
   }, []);
   const fetchUserProfile = async () => {
     setLoading(true);
@@ -40,6 +43,22 @@ function Profile() {
       }
     } catch (error) {
       setUpdateError("Could not fetch user details: ", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUpvotedComplaints = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/user/me/upvoted");
+      const data = await res.json();
+      if (data.ok) {
+        setUpvotedComplaints(data.upvotedComplaints);
+        console.log("complaints: ", upvotedComplaints);
+      }
+    } catch (error) {
+      setUpdateError("Could not fetch upvoted complaints: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -106,7 +125,7 @@ function Profile() {
       setLoading(false);
       return;
     }
-    if(passwordData.newPassword.length < 6) {
+    if (passwordData.newPassword.length < 6) {
       setUpdateError("Password must be at least 6 characters long.");
       setLoading(false);
       return;
@@ -246,10 +265,11 @@ function Profile() {
             <div className="relative w-28 h-28 rounded-full bg-[rgb(60,79,131)] flex items-center justify-center text-white text-5xl font-bold shadow-md">
               {getInitials(userData.name || "Guest User")}
             </div>
-            <span className="text-gray-700 text-lg font-light mb-2">{userData.role}</span>
+            <span className="text-gray-700 text-lg font-light mb-2">
+              {userData.role}
+            </span>
           </div>
           <div className="flex flex-col gap-4">
-            
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
               <TextInput
                 type="text"
@@ -373,6 +393,32 @@ function Profile() {
               </div>
             </Modal.Body>
           </Modal>
+        </div>
+
+        <div className="mt-5">
+          <h2 className="text-2xl font-semibold text-center mb-4">
+            Recent Activity
+          </h2>
+
+          {upvotedComplaints && upvotedComplaints.length === 0 ? (
+            <p className="text-gray-500 text-center">
+              No upvoted complaints yet.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {upvotedComplaints &&
+                upvotedComplaints.map((complaint) => (
+                  <ComplaintCard
+                    key={complaint.id}
+                    complaint={complaint.complaint}
+                    showProfile={false}
+                    showUpvote={false}
+                    showActions={false}
+                    showBadges={true}
+                  />
+                ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
