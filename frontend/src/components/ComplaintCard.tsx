@@ -6,6 +6,7 @@ import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
 import Lightbox from "yet-another-react-lightbox";
 import Inline from "yet-another-react-lightbox/plugins/inline";
 import "yet-another-react-lightbox/styles.css";
+import statusColors from "../utils/statusColors";
 
 interface Attachment {
   id: string;
@@ -82,12 +83,6 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   const slides = complaint.attachments.map((attachment) => ({
     src: attachment.imageUrl,
   }));
-  const statusColors: Record<string, string> = {
-    PENDING: "warning",
-    ASSIGNED: "indigo",
-    RESOLVED: "success",
-    NOT_RESOLVED: "failure",
-  };
 
   const createdAtDisplay =
     moment().diff(moment(complaint.createdAt), "days") > 5

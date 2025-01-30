@@ -6,6 +6,7 @@ import { useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
+import statusColors from "../utils/statusColors";
 
 function ComplaintPage() {
   const id = useLocation().pathname.split("/")[2];
@@ -17,12 +18,7 @@ function ComplaintPage() {
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [hasUserUpvoted, setHasUserUpvoted] = useState(false);
   const navigate = useNavigate();
-  const statusColors: Record<string, string> = {
-    PENDING: "warning",
-    ASSIGNED: "indigo",
-    RESOLVED: "success",
-    NOT_RESOLVED: "failure",
-  };
+  
   const customThemeCarousel = {
     indicators: {
       active: {
