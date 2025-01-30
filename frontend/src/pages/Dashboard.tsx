@@ -10,6 +10,8 @@ import { HiOutlineExclamationCircle } from "react-icons/hi2";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
 import ComplaintCard from "../components/ComplaintCard";
 import AdminSidebar from "../components/AdminSidebar";
+import ScrollToTop from "react-scroll-to-top";
+import { FaChevronUp } from "react-icons/fa";
 
 function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,7 @@ function Dashboard() {
                 <h2 className="text-2xl font-semibold text-center">
                   Dashboard
                 </h2>
+                <ScrollToTop smooth component={<FaChevronUp />} className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"/>
                 <div className="flex flex-col gap-4">
                   {userComplaints.map((complaint) => (
                     <ComplaintCard
