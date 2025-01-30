@@ -37,7 +37,7 @@ function App() {
         {/* Issue Incharge Routes */} 
         <Route element={<OnlyIssueInchargePrivateRoute />}>
         <Route
-          path="/issue-incharge/dashboard"
+          path="/incharge/dashboard"
           element={<IssueInchargeDashboard />}
         />
         </Route>
