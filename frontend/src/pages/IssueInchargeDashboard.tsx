@@ -1,12 +1,12 @@
 import React from 'react'
-import SideBar from '../components/SideBar'
+import InchargeSidebar from '../components/InchargeSidebar';
 
 function IssueInchargeDashboard() {
   return (
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar />
+        <InchargeSidebar />
       </div>
 
       {/* Main Section */}
