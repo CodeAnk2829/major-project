@@ -76,7 +76,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const isUpvoted = upvotedComplaints.includes(complaint.id);
+  const isUpvoted = showUpvote && upvotedComplaints.includes(complaint.id);
 
   // Prepare images for the Lightbox
   const slides = complaint.attachments.map((attachment) => ({
