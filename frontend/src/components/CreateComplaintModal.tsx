@@ -46,6 +46,7 @@ const CreateComplaintModal = ({
   const [imageUploadError, setImageUploadError] = useState(null);
   const [createError, setCreateError] = useState(null);
   const [tooltipError, setTooltipError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
 
@@ -346,6 +347,7 @@ const CreateComplaintModal = ({
       setCreateError("Description must be at least 3 characters long");
     }
     try {
+      setSubmitting(true);
       const res = await fetch("/api/v1/complaint/create", {
         method: "POST",
         headers: {
@@ -369,6 +371,8 @@ const CreateComplaintModal = ({
     } catch (error) {
       console.log(error);
       setCreateError("Error creating complaint. Try again later.");
+    } finally{
+      setSubmitting(false);
     }
   };
 
@@ -665,8 +669,9 @@ const CreateComplaintModal = ({
           <Button
             type="submit"
             className="w-full mt-4 border border-transparent bg-[rgb(60,79,131)] text-white focus:ring-4 focus:ring-purple-300 enabled:hover:bg-[rgb(47,69,131)] dark:bg-purple-600 dark:focus:ring-purple-900 dark:enabled:hover:bg-purple-700"
+            disabled={submitting}
           >
-            Submit Complaint
+            {submitting ? "Submitting..." : "Submit"}
           </Button>
         </form>
         {createError && <Alert color="failure">{createError}</Alert>}
