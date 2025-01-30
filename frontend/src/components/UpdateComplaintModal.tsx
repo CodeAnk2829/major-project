@@ -48,6 +48,7 @@ const UpdateComplaintModal = ({
   const [parentLocation, setParentLocation] = useState("");
   const [childLocation, setChildLocation] = useState("");
   const [blockLocation, setBlockLocation] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const locationData = {
     Hostel: {
       10: ["A", "B", "C"],
@@ -191,7 +192,6 @@ const UpdateComplaintModal = ({
     }
   };
 
-  //TODO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const dataToSend = {
@@ -206,6 +206,7 @@ const UpdateComplaintModal = ({
     };
     console.log("Data to send: ", dataToSend);
     try {
+      setSubmitting(true);
       const res = await fetch(`/api/v1/complaint/update/${id}`, {
         method: "PUT",
         headers: {
@@ -226,6 +227,8 @@ const UpdateComplaintModal = ({
     } catch (error) {
       console.log(error);
       setCreateError("Something went wrong");
+    } finally{
+      setSubmitting(false);
     }
   };
 
@@ -716,8 +719,9 @@ const UpdateComplaintModal = ({
               <Button
                 type="submit"
                 className="w-full mt-4 border border-transparent bg-[rgb(60,79,131)] text-white focus:ring-4 focus:ring-purple-300 enabled:hover:bg-[rgb(47,69,131)] dark:bg-purple-600 dark:focus:ring-purple-900 dark:enabled:hover:bg-purple-700"
+                disabled={submitting}
               >
-                Save Changes
+                {submitting ? "Submitting..." : "Save Changes"}
               </Button>
             </div>
           </form>
