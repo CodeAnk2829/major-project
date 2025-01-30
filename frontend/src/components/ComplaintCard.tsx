@@ -1,8 +1,11 @@
-import { Badge, Button, Carousel } from "flowbite-react";
+import { Badge, Button } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
+import Lightbox from "yet-another-react-lightbox";
+import Inline from "yet-another-react-lightbox/plugins/inline";
+import "yet-another-react-lightbox/styles.css";
 
 interface Attachment {
   id: string;
@@ -70,8 +73,15 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   onUpdate,
   onDelete,
 }) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-    const isUpvoted = upvotedComplaints?.includes(complaint.id || false);
+  const isUpvoted = upvotedComplaints.includes(complaint.id);
+
+  // Prepare images for the Lightbox
+  const slides = complaint.attachments.map((attachment) => ({
+    src: attachment.imageUrl,
+  }));
   const statusColors: Record<string, string> = {
     PENDING: "warning",
     ASSIGNED: "indigo",
@@ -83,39 +93,6 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
     moment().diff(moment(complaint.createdAt), "days") > 5
       ? moment(complaint.createdAt).format("DD/MM/YYYY")
       : moment(complaint.createdAt).fromNow();
-
-  const customThemeCarousel = {
-    root: {
-      base: "relative h-full w-full",
-      leftControl:
-        "absolute left-0 top-0 flex h-full items-center justify-center px-4 focus:outline-none",
-      rightControl:
-        "absolute right-0 top-0 flex h-full items-center justify-center px-4 focus:outline-none",
-    },
-    indicators: {
-      active: {
-        off: "bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-800",
-        on: "bg-white dark:bg-gray-800",
-      },
-      base: "h-3 w-3 rounded-full",
-      wrapper: "absolute bottom-5 left-1/2 flex -translate-x-1/2 space-x-3",
-    },
-    item: {
-      base: "absolute left-1/2 top-1/2 block w-full -translate-x-1/2 -translate-y-1/2",
-      wrapper: {
-        off: "w-full flex-shrink-0 transform cursor-default snap-center",
-        on: "w-full flex-shrink-0 transform cursor-grab snap-center",
-      },
-    },
-    control: {
-      base: "inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/30 group-hover:bg-white/50 group-focus:outline-none group-focus:ring-4 group-focus:ring-white dark:bg-gray-800/30 dark:group-hover:bg-gray-800/60 dark:group-focus:ring-gray-800/70 sm:h-10 sm:w-10",
-      icon: "h-5 w-5 text-slate-700 dark:text-gray-800 sm:h-6 sm:w-6",
-    },
-    scrollContainer: {
-      base: "flex h-full snap-mandatory overflow-y-hidden overflow-x-scroll scroll-smooth rounded-lg",
-      snap: "snap-x",
-    },
-  };
 
   return (
     <div className="border rounded-lg shadow-md bg-white flex flex-col">
@@ -137,20 +114,63 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
 
       {/* Image Carousel */}
       {complaint.attachments.length > 0 && (
-        <Carousel
-          slide={false}
-          className="mt-4 h-64"
-          theme={customThemeCarousel}
-        >
-          {complaint.attachments.map((attachment) => (
-            <img
-              key={attachment.id}
-              src={attachment.imageUrl}
-              alt="Complaint Attachment"
-              className="h-auto w-auto"
-            />
-          ))}
-        </Carousel>
+        <div className="relative flex flex-col justify-center items-center mt-4">
+          <Lightbox
+            styles={{
+              container: { backgroundColor: "rgba(255,255,255)" },
+              root: {
+                "--yarl__color_button": "rgb(66,66,66)",
+                "--yarl__color_button_active": "rgb(158, 158, 158)",
+              },
+            }}
+            index={lightboxIndex}
+            slides={slides}
+            plugins={[Inline]}
+            on={{
+              view: ({ index }) => setLightboxIndex(index),
+              click: () => setLightboxOpen(true),
+            }}
+            carousel={{
+              padding: 0,
+              spacing: 0,
+              imageFit: "cover", // Ensures the image fills the container
+            }}
+            inline={{
+              style: {
+                width: "100%",
+                height: "300px",
+                maxWidth: "900px",
+                // margin: "0 auto",
+                cursor: "pointer",
+                // borderRadius: "8px",
+                // display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                // color: "transparent",
+              },
+            }}
+          />
+
+          {/* Lightbox (Full-Screen View) */}
+          <Lightbox
+            open={lightboxOpen}
+            close={() => setLightboxOpen(false)}
+            index={lightboxIndex}
+            slides={slides}
+            on={{
+              view: ({ index }) => setLightboxIndex(index),
+            }}
+            animation={{ fade: 0 }}
+            controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+            styles={{
+              container: { backgroundColor: "rgba(0,0,0,0.9)" },
+              root: {
+                "--yarl__color_button": "rgb(66,66,66)",
+                "--yarl__color_button_active": "rgb(158, 158, 158)",
+              },
+            }}
+          />
+        </div>
       )}
 
       {/* Complaint Details */}
