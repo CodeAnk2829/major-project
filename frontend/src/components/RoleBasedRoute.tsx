@@ -15,7 +15,7 @@ const RoleBasedRoute = () => {
     case "FACULTY":
       return <Navigate to="/" replace />;
     case "ISSUE_INCHARGE":
-      return <Navigate to="/issue-incharge/dashboard" replace />;
+      return <Navigate to="/incharge/dashboard" replace />;
     case "ADMIN":
       return <Navigate to="/admin/dashboard" replace />;
     default:
