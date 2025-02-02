@@ -3,10 +3,13 @@ import React, { useEffect, useState } from "react";
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
 import { useSelector } from "react-redux";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import moment from "moment";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
 import statusColors from "../utils/statusColors";
+import Lightbox from "yet-another-react-lightbox";
+import Inline from "yet-another-react-lightbox/plugins/inline";
+import "yet-another-react-lightbox/styles.css";
 
 function ComplaintPage() {
   const id = useLocation().pathname.split("/")[2];
@@ -17,26 +20,11 @@ function ComplaintPage() {
   const { currentUser } = useSelector((state: any) => state.user);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [hasUserUpvoted, setHasUserUpvoted] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [slides, setSlides] = useState<{ src: string }[]>([]);
   const navigate = useNavigate();
   
-  const customThemeCarousel = {
-    indicators: {
-      active: {
-        off: "bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-800",
-        on: "bg-white dark:bg-gray-800",
-      },
-      base: "h-3 w-3 rounded-full",
-      wrapper: "absolute bottom-5 left-1/2 flex -translate-x-1/2 space-x-3",
-    },
-    control: {
-      base: "inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/30 group-hover:bg-white/50 group-focus:outline-none group-focus:ring-4 group-focus:ring-white dark:bg-gray-800/30 dark:group-hover:bg-gray-800/60 dark:group-focus:ring-gray-800/70 sm:h-10 sm:w-10",
-      icon: "h-5 w-5 text-slate-700 dark:text-gray-800 sm:h-6 sm:w-6",
-    },
-    scrollContainer: {
-      base: "flex h-full snap-mandatory overflow-y-hidden overflow-x-scroll scroll-smooth rounded-lg",
-      snap: "snap-x",
-    },
-  };
   useEffect(() => {
     const fetchComplaint = async () => {
       setLoading(true);
@@ -46,6 +34,10 @@ function ComplaintPage() {
         console.log(data);
         setComplaint(data);
         setHasUserUpvoted(data.hasUpvoted);
+
+        if (data.attachments.length > 0) {
+          setSlides(data.attachments.map((attachment) => ({ src: attachment.imageUrl })));
+        }
       } catch (err) {
         console.error("Error fetching complaint:", err);
         setError("Failed to load complaint. Please try again later.");
@@ -133,26 +125,61 @@ function ComplaintPage() {
       <div className="mt-4 flex gap-4 self-center">
         <Badge color={statusColors[complaint.status]}>{complaint.status}</Badge>
       </div>
-      {complaint.attachments.length > 0 ? (
-          <Carousel
-            slide={false}
-            className="mt-4 h-96"
-            theme={customThemeCarousel}
-          >
-            {complaint.attachments.map((attachment) => (
-              <img
-                key={attachment.id}
-                src={attachment.imageUrl}
-                alt="Complaint Attachment"
-                className="object-scale-down"
-              />
-            ))}
-          </Carousel>
-        ) : (
-          <Carousel slide={false} className="mt-4 h-96" theme={customThemeCarousel}>
-          <img src='/default-complaint.jpg' alt='default complaint' className="object-scale-down"/>
-        </Carousel>
-        )}
+      {complaint.attachments.length > 0 && (
+        <div className="mt-4 flex flex-col items-center">
+          <Lightbox
+            styles={{
+              container: { backgroundColor: "rgba(255,255,255)" },
+              root: {
+                "--yarl__color_button": "rgb(66,66,66)",
+                "--yarl__color_button_active": "rgb(158, 158, 158)",
+              },
+            }}
+            index={lightboxIndex}
+            slides={slides}
+            plugins={[Inline]}
+            on={{
+              view: ({ index }) => setLightboxIndex(index),
+              click: () => setLightboxOpen(true),
+            }}
+            carousel={{
+              padding: 0,
+              spacing: 0,
+              imageFit: "cover", // Ensures the image fills the container
+            }}
+            inline={{
+              style: {
+                width: "100%",
+                height: "450px",
+                maxWidth: "1000px",
+                cursor: "pointer",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            }}
+          />
+        </div>
+      )}
+
+      {/* Lightbox for Full-Screen View */}
+      <Lightbox
+            open={lightboxOpen}
+            close={() => setLightboxOpen(false)}
+            index={lightboxIndex}
+            slides={slides}
+            on={{
+              view: ({ index }) => setLightboxIndex(index),
+            }}
+            animation={{ fade: 0 }}
+            controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+            styles={{
+              container: { backgroundColor: "rgba(0,0,0,0.8)" },
+              root: {
+                "--yarl__color_button": "rgb(99,99,99)",
+                "--yarl__color_button_active": "rgb(158, 158, 158)",
+              },
+            }}
+          />
       <div className="mt-4 flex gap-4 self-center border-b border-slate-500">
         <p>
           <strong>Created by:</strong> {complaint &&complaint.userName}
