@@ -185,8 +185,8 @@ function ComplaintPage() {
         <div className="mt-8 flex gap-4 self-center">
           <Tooltip
             content={
-              complaint.status !== "PENDING"
-                ? "Complaint is assigned and cannot be updated"
+              complaint.status !== "ASSIGNED"
+                ? "Complaint is assigned to a resolver and cannot be updated"
                 : "edit complaint details"
             }
             arrow={false}
@@ -195,16 +195,24 @@ function ComplaintPage() {
             <Button
               color="light"
               onClick={handleUpdate}
-              disabled={complaint.status !== "PENDING"}
+              disabled={complaint.status !== "ASSIGNED"}
             >
               <AiOutlineEdit className="mr-2" />
               Update
             </Button>
           </Tooltip>
-          <Button color="failure" onClick={() => setDeleteModal(true)}>
+          <Tooltip content={
+              complaint.status !== "ASSIGNED"
+                ? "Complaint is assigned to a resolver and cannot be updated"
+                : "edit complaint details"
+            }
+            arrow={false}
+            trigger="hover">
+          <Button color="failure" onClick={() => setDeleteModal(true)} disabled={complaint.status !== "ASSIGNED"}>
             <AiOutlineDelete className="mr-2" />
             Delete
           </Button>
+          </Tooltip>
         </div>
       )}
       <Modal show={deleteModal} onClose={() => setDeleteModal(false)} size="lg">

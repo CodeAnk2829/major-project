@@ -242,14 +242,14 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
           <div className="flex items-center gap-2">
             <Button
               color="light"
-              disabled={complaint.status !== "PENDING"}
+              disabled={complaint.status !== "ASSIGNED"}
               onClick={() => onUpdate?.(complaint.id)}
             >
               Update
             </Button>
             <Button
               color="failure"
-              disabled={complaint.status !== "PENDING"}
+              disabled={complaint.status !== "ASSIGNED"}
               onClick={() => onDelete && onDelete(complaint.id)}
             >
               Delete
