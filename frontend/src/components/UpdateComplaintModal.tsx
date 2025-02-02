@@ -44,22 +44,7 @@ const UpdateComplaintModal = ({
   const [loading, setLoading] = useState(true);
   const [complaint, setComplaint] = useState(null);
   const id = complaintIdProp;
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [parentLocation, setParentLocation] = useState("");
-  const [childLocation, setChildLocation] = useState("");
-  const [blockLocation, setBlockLocation] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const locationData = {
-    Hostel: {
-      10: ["A", "B", "C"],
-      11: ["A", "B"],
-    },
-    Department: {
-      CSE: ["A", "B"],
-      ECE: ["A"],
-    },
-    Other: ["Library", "Sports Complex", "Cafeteria"],
-  };
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -97,35 +82,10 @@ const UpdateComplaintModal = ({
         postAsAnonymous: complaint.postAsAnonymous,
       });
       const [parent, child, block] = complaint.location.split("-");
-      setParentLocation(parent || "");
-      setChildLocation(child || "");
-      setBlockLocation(block || "");
       setError(null);
     }
   }, [complaint]);
 
-  const handleEditLocation = () => setIsEditingLocation(!isEditingLocation); // Toggle location editing
-
-  const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setParentLocation(e.target.value);
-    setChildLocation("");
-    setFormData({ ...formData, location: e.target.value });
-  };
-
-  const handleChildChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setChildLocation(e.target.value);
-    setFormData({
-      ...formData,
-      location: `${parentLocation}-${e.target.value}`,
-    });
-  };
-
-  const handleBlockChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      location: `${parentLocation}-${childLocation}-${e.target.value}`,
-    });
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -227,7 +187,7 @@ const UpdateComplaintModal = ({
     } catch (error) {
       console.log(error);
       setCreateError("Something went wrong");
-    } finally{
+    } finally {
       setSubmitting(false);
     }
   };
@@ -376,9 +336,6 @@ const UpdateComplaintModal = ({
       postAsAnonymous: complaint.postAsAnonymous,
     });
     const [parent, child, block] = complaint.location.split("-");
-    setParentLocation(parent || "");
-    setChildLocation(child || "");
-    setBlockLocation(block || "");
     setError(null);
   };
 
@@ -386,7 +343,6 @@ const UpdateComplaintModal = ({
     resetForm();
     setFormData(null);
     setError(null);
-    setIsEditingLocation(false);
     setFile([]);
     setImageUploadProgress(null);
     setImageUploadError(null);
@@ -444,117 +400,11 @@ const UpdateComplaintModal = ({
                 <Label htmlFor="location" value="Location:" />
               </div>
               <div className="flex justify-between gap-8">
-                {!isEditingLocation ? (
-                  <div className="flex mt-2">
-                    <Badge color="gray" className="float-right">
-                      {complaint.location}
-                    </Badge>{" "}
-                    <AiOutlineEdit onClick={handleEditLocation} />
-                  </div>
-                ) : (
-                  <div className="flex-1">
-                    {/* Location - Parent */}
-                    <div className="mb-4">
-                      <Label
-                        htmlFor="parentLocation"
-                        value="Location Category"
-                      />
-                      <Select
-                        id="parentLocation"
-                        value={parentLocation}
-                        onChange={handleParentChange}
-                        required
-                        theme={customThemeSelect}
-                        color="gray"
-                      >
-                        <option value="">Select Category</option>
-                        {Object.keys(locationData).map((parent, index) => (
-                          <option key={index} value={parent}>
-                            {parent}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-
-                    {/* Location - Child */}
-                    {parentLocation && parentLocation !== "Other" && (
-                      <div>
-                        <Label
-                          htmlFor="childLocation"
-                          value="Specific Location"
-                        />
-                        <Select
-                          id="childLocation"
-                          value={childLocation}
-                          onChange={handleChildChange}
-                          required
-                          theme={customThemeSelect}
-                        >
-                          <option value="">Select Specific Location</option>
-                          {Object.keys(locationData[parentLocation]).map(
-                            (child, index) => (
-                              <option key={index} value={child}>
-                                {child}
-                              </option>
-                            )
-                          )}
-                        </Select>
-                      </div>
-                    )}
-                    {(parentLocation === "Hostel" ||
-                      parentLocation === "Department") &&
-                      childLocation &&
-                      locationData[parentLocation][childLocation] && (
-                        <div>
-                          <Label htmlFor="block" value="Block" />
-                          <Select
-                            id="block"
-                            onChange={handleBlockChange}
-                            required
-                            theme={customThemeSelect}
-                            value={blockLocation}
-                          >
-                            <option value="">Select Block</option>
-                            {locationData[parentLocation][childLocation].map(
-                              (block, index) => (
-                                <option key={index} value={block}>
-                                  {block}
-                                </option>
-                              )
-                            )}
-                          </Select>
-                        </div>
-                      )}
-                    {parentLocation === "Other" && (
-                      <div>
-                        <Label
-                          htmlFor="childLocation"
-                          value="Specific Location"
-                        />
-                        <Select
-                          id="childLocation"
-                          value={formData.location}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              location: e.target.value,
-                            })
-                          }
-                          required
-                        >
-                          <option value="">Select Specific Location</option>
-                          {locationData[parentLocation].map(
-                            (location, index) => (
-                              <option key={index} value={location}>
-                                {location}
-                              </option>
-                            )
-                          )}
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex mt-1 ml-2">
+                  <Badge color="gray" className="float-right">
+                    {complaint.location}
+                  </Badge>{" "}
+                </div>
 
                 {/* Right Side - Tags */}
                 <div className="flex-1">
