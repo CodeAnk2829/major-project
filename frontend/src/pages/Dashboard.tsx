@@ -22,12 +22,6 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [complaintIdToUpdate, setComplaintIdToUpdate] = useState('');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const statusColors: Record<string, string> = {
-    PENDING: "warning",
-    ASSIGNED: "indigo",
-    RESOLVED: "success",
-    NOT_RESOLVED: "failure",
-  };
 
   useEffect(() => {
     const fetchUserComplaints = async () => {
