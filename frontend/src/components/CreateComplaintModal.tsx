@@ -12,7 +12,7 @@ import {
   Toast,
   Tooltip,
 } from "flowbite-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { HiExclamation } from "react-icons/hi";
 import Lightbox from "yet-another-react-lightbox";
 import Masonry from "react-masonry-css";
+import { identity } from "@cloudinary/url-gen/backwards/utils/legacyBaseUtil";
 
 const CreateComplaintModal = ({
   isOpen,
@@ -35,7 +36,7 @@ const CreateComplaintModal = ({
     title: "",
     description: "",
     access: "PUBLIC",
-    location: "",
+    locationId: 0,
     attachments: [],
     tags: [],
     postAsAnonymous: false,
@@ -43,6 +44,9 @@ const CreateComplaintModal = ({
 
   const [parentLocation, setParentLocation] = useState("");
   const [childLocation, setChildLocation] = useState("");
+  const [block, setBlock] = useState("");
+  // const [locations, setLocations] = useState([]); //for api call
+  const [categorizedLocations, setCategorizedLocations] = useState({});
   const [file, setFile] = useState(null);
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
@@ -54,6 +58,7 @@ const CreateComplaintModal = ({
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
 
+  //For Lightbox preview
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -62,45 +67,139 @@ const CreateComplaintModal = ({
   };
 
   //TODO: Handle these from the backend + location values in select option
-  const locationData = {
-    Hostel: {
-      10: ["A", "B", "C"], // Hostel 10 has blocks A, B, C
-      11: ["A", "B"], // Hostel 11 has blocks A, B
-      12: ["A", "B", "C", "D"], // Hostel 12 has blocks A, B, C, D
+  const locations = [
+    {
+      id: 1,
+      locationName: "Hostel-10-A",
     },
-    Department: {
-      CSE: ["A", "B"],
-      ECE: ["A"],
-      EE: ["A", "B"],
-      ME: ["A", "B"],
+    {
+      id: 2,
+      locationName: "Hostel-10-B",
     },
-    Other: ["Sports Complex", "Library", "Bus Services", "Ragging", "Other"],
+    {
+      id: 3,
+      locationName: "Hostel-12",
+    },
+    {
+      id: 4,
+      locationName: "Sports Complex",
+    },
+  ];
+
+  useEffect(() => {
+    console.log("Handle tag fetch and location fetch here");
+    categorizeLocations(locations);
+  }, []);
+  const categorizeLocations = (locations) => {
+    const categorized = {};
+
+    locations.forEach(({ id, locationName }) => {
+      const parts = locationName.split("-"); // Split into [Parent, Child, Block]
+
+      if (parts.length === 1) {
+        categorized[parts[0]] = id;
+      } else if (parts.length === 2) {
+        if (!categorized[parts[0]]) categorized[parts[0]] = {};
+        categorized[parts[0]][parts[1]] = id;
+      } else if (parts.length === 3) {
+        if (!categorized[parts[0]]) categorized[parts[0]] = {};
+        if (!categorized[parts[0]][parts[1]])
+          categorized[parts[0]][parts[1]] = {};
+        categorized[parts[0]][parts[1]][parts[2]] = id;
+      }
+    });
+
+    setCategorizedLocations(categorized);
   };
+
+  const getLocationNameById = (locationId) => {
+    const location = locations.find((loc) => loc.id === locationId);
+    return location ? location.locationName : "Not Selected";
+  };
+
+  const handleParentChange = (e) => {
+    const selectedParent = e.target.value;
+    setParentLocation(selectedParent);
+    setChildLocation("");
+    setBlock("");
+
+    // If this parent has NO child or block, set locationId directly
+    if (typeof categorizedLocations[selectedParent] === "number") {
+      setFormData({
+        ...formData,
+        locationId: categorizedLocations[selectedParent],
+      });
+    } else {
+      setFormData({ ...formData, locationId: null });
+    }
+  };
+
+  const handleChildChange = (e) => {
+    const selectedChild = e.target.value;
+    setChildLocation(selectedChild);
+    setBlock("");
+
+    // If this child has NO block, set locationId directly
+    if (
+      typeof categorizedLocations[parentLocation][selectedChild] === "number"
+    ) {
+      setFormData({
+        ...formData,
+        locationId: categorizedLocations[parentLocation][selectedChild],
+      });
+    } else {
+      setFormData({ ...formData, locationId: null });
+    }
+  };
+
+  const handleBlockChange = (e) => {
+    const selectedBlock = e.target.value;
+    setBlock(selectedBlock);
+
+    // Set final locationId from the selected block
+    const locationId =
+      categorizedLocations[parentLocation]?.[childLocation]?.[selectedBlock];
+    setFormData({ ...formData, locationId });
+  };
+
+
 
   //TODO: Handle from backend
   const tagMapping = {
     1: "Hostel",
-    2: "Mess",
-    3: "Department",
+    2: "Department",
+    3: "Mess",
     4: "Cleaning",
     5: "Sports",
-    6: "Bus Services",
-    8: "Ragging",
-    9: "Gym",
-    10: "Library",
-    11: "Internet",
-    12: "Wi-Fi",
-    13: "LAN",
-    14: "Electricity",
-    15: "Equipment",
-    16: "Carpentry",
-    17: "Dispensary",
-    18: "Ambulance",
-    19: "Medical Services",
-    20: "Canteen",
-    21: "Labs",
-    22: "Personal Issue",
-    23: "Others",
+    6: "Data Center",
+    7: "Internet",
+    8: "WiFi",
+    9: "LAN",
+    10: "Electricity",
+    11: "Equipment",
+    12: "Carpentry",
+    13: "Dispensary",
+    14: "Ambulance",
+    15: "Medical Service",
+    16: "Canteen",
+    17: "Library",
+    18: "Bus Service",
+    19: "Ragging", //
+    20: "Personal Issue", //
+    21: "Lab",
+    22: "Lift",
+    23: "Vending Machine",
+    24: "Projector",
+    25: "Classroom",
+    26: "Stationary",
+    27: "Furniture",
+    28: "Plumbing",
+    29: "Gardening",
+    30: "Security",
+    31: "Parking",
+    32: "Water",
+    33: "All",
+    34: "Others",
   };
 
   const resetForm = () => {
@@ -108,7 +207,7 @@ const CreateComplaintModal = ({
       title: "",
       description: "",
       access: "PUBLIC",
-      location: "",
+      locationId: 0,
       attachments: [],
       tags: [],
       postAsAnonymous: false,
@@ -125,6 +224,7 @@ const CreateComplaintModal = ({
   const handleModalClose = () => {
     resetForm();
     onClose();
+    setStep(1);
   };
 
   const customThemeTi = {
@@ -221,43 +321,6 @@ const CreateComplaintModal = ({
     },
   };
 
-  const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedParent = e.target.value;
-    setParentLocation(selectedParent);
-    setChildLocation(""); // Reset child location
-
-    if (selectedParent === "Other") {
-      setFormData({ ...formData, location: "" });
-    } else {
-      setFormData({ ...formData, location: selectedParent });
-    }
-  };
-
-  const handleChildChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedChild = e.target.value;
-    setChildLocation(selectedChild);
-
-    // Combine parent and child for "Hostel" and "Department"
-    if (parentLocation !== "Other") {
-      setFormData({
-        ...formData,
-        location: `${parentLocation}-${selectedChild}`,
-      });
-    }
-  };
-
-  const handleBlockChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedBlock = e.target.value;
-
-    // Combine parent, child, and block for "Hostel" or "Department"
-    if (parentLocation !== "Other") {
-      setFormData({
-        ...formData,
-        location: `${parentLocation}-${childLocation}-${selectedBlock}`,
-      });
-    }
-  };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -265,8 +328,7 @@ const CreateComplaintModal = ({
   };
 
   const handleAccessChange = () => {
-    if (formData.tags.includes(8) || formData.tags.includes(22)) {
-      // Check if Ragging tag (id=8) is selected or Personal Issue (id=22)
+    if (formData.tags.includes(19) || formData.tags.includes(20)) {
       setTooltipError(true);
       setTimeout(() => setTooltipError(false), 3000); // Hide tooltip after 3 seconds
       return;
@@ -284,7 +346,7 @@ const CreateComplaintModal = ({
     if (!formData.tags.includes(selectedTagId)) {
       const updatedTags = [...formData.tags, selectedTagId];
 
-      if (updatedTags.includes(8) || updatedTags.includes(22)) {
+      if (updatedTags.includes(19) || updatedTags.includes(20)) {
         //tagid for Ragging and personal issue
         setFormData({ ...formData, tags: updatedTags, access: "PRIVATE" });
       } else {
@@ -292,6 +354,7 @@ const CreateComplaintModal = ({
       }
     }
   };
+
 
   const handleUploadImage = async () => {
     try {
@@ -342,9 +405,8 @@ const CreateComplaintModal = ({
   //TODO: Change logic for preview
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
     //validations
-    if (!formData.title || !formData.description || !formData.location) {
+    if (!formData.title || !formData.description || !formData.locationId) {
       setCreateError("Please fill all the fields");
     }
 
@@ -357,6 +419,7 @@ const CreateComplaintModal = ({
     }
     try {
       setSubmitting(true);
+      console.log(formData);
       const res = await fetch("/api/v1/complaint/create", {
         method: "POST",
         headers: {
@@ -368,10 +431,12 @@ const CreateComplaintModal = ({
       const data = await res.json();
 
       if (!res.ok) {
+        console.log("Failure: ", res);
         setCreateError(data.error);
         return;
       }
       if (res.ok) {
+        console.log("Success: ", res);
         setCreateError(null);
         resetForm();
         navigate("/");
@@ -428,97 +493,77 @@ const CreateComplaintModal = ({
               </div>
               <div className="flex justify-between gap-8">
                 <div className="flex-1">
-                  {/* Location - Parent */}
+                  {/* Parent Dropdown */}
                   <div className="mb-4">
                     <Label htmlFor="parentLocation" value="Location Category" />
                     <Select
                       id="parentLocation"
                       value={parentLocation}
                       onChange={handleParentChange}
-                      required
                       theme={customThemeSelect}
-                      color="gray"
                     >
                       <option value="">Select Category</option>
-                      {Object.keys(locationData).map((parent, index) => (
-                        <option key={index} value={parent}>
+                      {Object.keys(categorizedLocations).map((parent) => (
+                        <option key={parent} value={parent}>
                           {parent}
                         </option>
                       ))}
                     </Select>
                   </div>
 
-                  {/* Location - Child */}
-                  {parentLocation && parentLocation !== "Other" && (
-                    <div>
-                      <Label
-                        htmlFor="childLocation"
-                        value="Specific Location"
-                      />
-                      <Select
-                        id="childLocation"
-                        value={childLocation}
-                        onChange={handleChildChange}
-                        required
-                        theme={customThemeSelect}
-                      >
-                        <option value="">Select Specific Location</option>
-                        {Object.keys(locationData[parentLocation]).map(
-                          (child, index) => (
-                            <option key={index} value={child}>
+                  {/* Child Dropdown (Only if applicable) */}
+                  {parentLocation &&
+                    typeof categorizedLocations[parentLocation] ===
+                      "object" && (
+                      <div className="mb-4">
+                        <Label
+                          htmlFor="childLocation"
+                          value="Specific Location"
+                        />
+                        <Select
+                          id="childLocation"
+                          value={childLocation}
+                          onChange={handleChildChange}
+                          theme={customThemeSelect}
+                        >
+                          <option value="">Select Specific Location</option>
+                          {Object.keys(
+                            categorizedLocations[parentLocation] || {}
+                          ).map((child) => (
+                            <option key={child} value={child}>
                               {child}
                             </option>
-                          )
-                        )}
-                      </Select>
-                    </div>
-                  )}
-                  {(parentLocation === "Hostel" ||
-                    parentLocation === "Department") &&
-                    childLocation &&
-                    locationData[parentLocation][childLocation] && (
+                          ))}
+                        </Select>
+                      </div>
+                    )}
+
+                  {/* Block Dropdown (Only if applicable) */}
+                  {childLocation &&
+                    typeof categorizedLocations[parentLocation][
+                      childLocation
+                    ] === "object" && (
                       <div>
                         <Label htmlFor="block" value="Block" />
                         <Select
                           id="block"
+                          value={block}
                           onChange={handleBlockChange}
-                          required
                           theme={customThemeSelect}
                         >
                           <option value="">Select Block</option>
-                          {locationData[parentLocation][childLocation].map(
-                            (block, index) => (
-                              <option key={index} value={block}>
-                                {block}
-                              </option>
-                            )
-                          )}
+                          {Object.keys(
+                            categorizedLocations[parentLocation]?.[
+                              childLocation
+                            ] || {}
+                          ).map((block) => (
+                            <option key={block} value={block}>
+                              {block}
+                            </option>
+                          ))}
                         </Select>
                       </div>
                     )}
-                  {parentLocation === "Other" && (
-                    <div>
-                      <Label
-                        htmlFor="childLocation"
-                        value="Specific Location"
-                      />
-                      <Select
-                        id="childLocation"
-                        value={formData.location}
-                        onChange={(e) =>
-                          setFormData({ ...formData, location: e.target.value })
-                        }
-                        required
-                      >
-                        <option value="">Select Specific Location</option>
-                        {locationData[parentLocation].map((location, index) => (
-                          <option key={index} value={location}>
-                            {location}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  )}
                 </div>
 
                 {/* Right Side - Tags */}
@@ -691,6 +736,7 @@ const CreateComplaintModal = ({
               className="mt-4 w-full"
               outline
               gradientDuoTone="purpleToBlue"
+              disabled={imageUploadProgress || imageUploadError}
             >
               Preview Complaint
             </Button>
@@ -710,7 +756,7 @@ const CreateComplaintModal = ({
             </p>
 
             <p className="flex items-center gap-2">
-              <strong>Location:</strong> {formData.location}
+              <strong>Location:</strong> {getLocationNameById(formData.locationId)}
               <Tooltip content="This cannot be edited later">
                 <IoInformationCircleOutline />
               </Tooltip>
