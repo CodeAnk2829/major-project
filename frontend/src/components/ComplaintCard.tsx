@@ -1,7 +1,7 @@
 import { Badge, Button } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import moment from "moment";
+import moment from "moment-timezone";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
 import Lightbox from "yet-another-react-lightbox";
 import Inline from "yet-another-react-lightbox/plugins/inline";
@@ -48,10 +48,14 @@ interface ComplaintCardProps {
   showUpvote: boolean;
   showActions: boolean;
   showBadges: boolean;
+  showInchargeActions?: boolean;
   handleUpvote?: (id: string) => void;
   upvotedComplaints: string[];
   onUpdate?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onResolve?: (id: string) => void; //may change
+  onDelegate?: (complaint: Complaint) => void; //may change
+  onEscalate?: (id: string) => void; //may change
 }
 
 const getInitials = (name: string): string => {
@@ -69,38 +73,44 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   showUpvote,
   showActions,
   showBadges,
+  showInchargeActions=false,
   handleUpvote,
   upvotedComplaints,
   onUpdate,
   onDelete,
+  onResolve,
+  onDelegate,
+  onEscalate,
 }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const isUpvoted = showUpvote && upvotedComplaints.includes(complaint.id);
+  const isUpvoted = showUpvote && upvotedComplaints.includes(String(complaint.id));
 
   // Prepare images for the Lightbox
   const slides = complaint.attachments.map((attachment) => ({
     src: attachment.imageUrl,
   }));
 
-  const createdAtDisplay =
-    moment().diff(moment(complaint.createdAt), "days") > 5
-      ? moment(complaint.createdAt).format("DD/MM/YYYY")
-      : moment(complaint.createdAt).fromNow();
-
+  const createdAtDisplay = moment.utc(complaint.createdAt)
+    .calendar(null, {
+      sameDay: "[Today] h:mm A",
+      lastDay: "[Yesterday] h:mm A",
+      lastWeek: "dddd h:mm A",
+      sameElse: "DD/MM/YYYY h:mm A",
+    });
   return (
-    <div className="border rounded-lg shadow-md bg-white flex flex-col">
+    <div className="border rounded-lg shadow-md bg-white flex flex-col" style={{width: '1000px', height: 'auto'}}>
       {/* Header */}
       {/* Profile Section */}
       {showProfile && (
         <div className="flex items-center border-b border-gray-200 p-4">
           <div className="w-12 h-12 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white font-bold text-lg">
-            {getInitials(complaint.user.name || "User")}
+            {getInitials(complaint.complainerName || "User")}
           </div>
           <div className="ml-3">
             <span className="block text-sm font-bold text-gray-700">
-              @{complaint.user.name}
+              @{complaint.complainerName}
             </span>
             <span className="text-xs text-gray-500">{createdAtDisplay}</span>
           </div>
@@ -135,13 +145,9 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
                 width: "100%",
                 height: "300px",
                 maxWidth: "900px",
-                // margin: "0 auto",
                 cursor: "pointer",
-                // borderRadius: "8px",
-                // display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                // color: "transparent",
               },
             }}
           />
@@ -191,7 +197,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
         <div className="flex flex-wrap gap-2 mt-3">
           {complaint.tags.map((tag, index) => (
             <Badge key={index} color="info" className="text-sm font-medium">
-              {tag.tags.tagName}
+              {tag}
             </Badge>
           ))}
         </div>
@@ -233,7 +239,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
               {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
             </button>
             <span className="ml-2 text-gray-600 text-sm">
-              {complaint.complaintDetails.upvotes} upvotes
+              {complaint.upvotes} upvotes
             </span>
           </div>
         )}
@@ -253,6 +259,30 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
               onClick={() => onDelete && onDelete(complaint.id)}
             >
               Delete
+            </Button>
+          </div>
+        )}
+        {showInchargeActions && (
+          <div className="flex items-center gap-2">
+            <Button
+              color="blue"
+              onClick={() => onResolve?.(complaint.id)} //may change
+            >
+              Resolve by Self
+            </Button>
+
+            <Button
+              color="light"
+              onClick={() => onDelegate?.(complaint)} //may change
+            >
+              Delegate
+            </Button>
+
+            <Button
+              color="purple"
+              onClick={() => onEscalate?.(complaint.id)} //may change
+            >
+              Escalate
             </Button>
           </div>
         )}

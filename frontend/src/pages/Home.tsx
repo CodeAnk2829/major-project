@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import SearchBar from "../components/SearchBar";
 import ComplaintCard from "../components/ComplaintCard";
 import { Spinner } from "flowbite-react";
@@ -6,8 +6,14 @@ import SideBar from "../components/SideBar";
 import ScrollToTop from "react-scroll-to-top";
 import { FaChevronUp } from "react-icons/fa";
 
+interface Complaint {
+  id: string;
+  complaintDetails: {
+    upvotes: number;
+  };
+}
 const Home = () => {
-  const [complaints, setComplaints] = useState([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [upvotedComplaints, setUpvotedComplaints] = useState<string[]>([]);
 
@@ -15,18 +21,19 @@ const Home = () => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
       try {
-        const res = await fetch("/api/v1/complaint/get-all");
+        const res = await fetch("/api/v1/complaint/get/all-complaints");
         if (!res.ok) {
           throw new Error(
             "Failed to fetch complaints. Please try again later."
           );
         }
         const data = await res.json();
-        if (!data.complaintResponse) {
+        if (!data.complaintDetails) {
           throw new Error("Unexpected response format.");
         }
-        setComplaints(data.complaintResponse);
-        setUpvotedComplaints(data.upvotedComplaints.map((c: any) => c.complaintId));
+        setComplaints(data.complaintDetails);
+        setUpvotedComplaints(data.upvotedComplaints.map((c: any) => String(c)));
+        console.log(upvotedComplaints);
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -39,49 +46,52 @@ const Home = () => {
   }, []);
 
   const handleUpvote = async (complaintId) => {
-    console.log("Upvote clicked for complaint with complaint id: ", complaintId);
     try {
       const res = await fetch(`/api/v1/complaint/upvote/${complaintId}`, {
         method: "POST",
         credentials: "include",
       });
+  
       const data = await res.json();
-
-      if (data.ok) {
-        setComplaints((prevComplaints) =>
-          prevComplaints.map((comp) =>
-            comp.id === complaintId
-              ? {
-                  ...comp,
-                  complaintDetails: {
-                    ...comp.complaintDetails,
-                    upvotes: data.upvotes,
-                  },
-                }
-              : comp
-          )
-        );
-
-        setUpvotedComplaints((prevUpvoted) => {
-          if (data.hasUpvoted) {
-            return [...prevUpvoted, complaintId];
-          } else {
-            return prevUpvoted.filter((id) => id !== complaintId);
-          }
-        });
-      } else {
+      console.log("Upvote API Response:", data);
+  
+      if (!data.ok) {
         console.error("Failed to toggle upvote:", data.error);
+        return;
       }
+  
+      setComplaints((prevComplaints) => {
+        console.log("Previous Complaints State:", prevComplaints);
+        const newComplaints = prevComplaints.map((complaint) =>
+          complaint.id === complaintId
+            ? {
+                ...complaint,
+                upvotes: data.upvotes
+              }
+            : complaint
+        );
+        console.log("Updated Complaints:", newComplaints);
+        return [...newComplaints]; // Ensure a fresh array
+      });
+  
+      setUpvotedComplaints((prevUpvoted) => {
+        console.log("Previous Upvoted Complaints:", prevUpvoted);
+        return data.hasUpvoted
+          ? [...new Set([...prevUpvoted, complaintId])]
+          : prevUpvoted.filter((id) => id !== complaintId);
+      });
+  
     } catch (error) {
       console.error("Failed to upvote the complaint:", error);
     }
   };
+  
 
   return (
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
       <div className="w-full md:w-1/4">
-        <SideBar/>
+        <SideBar />
       </div>
 
       {/* Main Section */}
@@ -101,7 +111,11 @@ const Home = () => {
                 <h2 className="text-2xl font-semibold text-center">
                   Recent Complaints
                 </h2>
-                <ScrollToTop smooth component={<FaChevronUp />} className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"/>
+                <ScrollToTop
+                  smooth
+                  component={<FaChevronUp />}
+                  className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"
+                />
                 <div className="flex flex-col gap-4">
                   {complaints.map((complaint) => (
                     <ComplaintCard
