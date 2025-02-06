@@ -16,6 +16,7 @@ import ManageTags from './pages/ManageTags'
 import ManageLocations from './pages/ManageLocations'
 import ManageAllUsers from './pages/ManageAllUsers'
 import Notifications from './pages/Notifications'
+import InchargeManageComplaints from './pages/InchargeManageComplaints'
 
 function App() {
 
@@ -36,10 +37,11 @@ function App() {
 
         {/* Issue Incharge Routes */} 
         <Route element={<OnlyIssueInchargePrivateRoute />}>
-        <Route
-          path="/incharge/dashboard"
-          element={<IssueInchargeDashboard />}
-        />
+          <Route
+            path="/incharge/dashboard"
+            element={<IssueInchargeDashboard />}
+          />
+          <Route path="/incharge/complaints" element={<InchargeManageComplaints />}/>
         </Route>
 
         {/* Admin Routes */}
