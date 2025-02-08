@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import SearchBar from "../components/SearchBar";
 import ComplaintCard from "../components/ComplaintCard";
-import { Spinner } from "flowbite-react";
+import { Pagination, Spinner } from "flowbite-react";
 import SideBar from "../components/SideBar";
 import ScrollToTop from "react-scroll-to-top";
 import { FaChevronUp } from "react-icons/fa";
-
+import { customThemePagination } from "../utils/flowbiteCustomThemes";
 interface Complaint {
   id: string;
   complaintDetails: {
@@ -16,6 +16,15 @@ const Home = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [upvotedComplaints, setUpvotedComplaints] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [complaintsPerPage, setComplaintsPerPage] = useState(10);
+  const onPageChange = (page: number) => setCurrentPage(page);
+  const lastComplaintIndex = currentPage * complaintsPerPage;
+  const firstComplaintIndex = lastComplaintIndex - complaintsPerPage;
+  const currentComplaints = complaints.slice(
+    firstComplaintIndex,
+    lastComplaintIndex
+  );
 
   useEffect(() => {
     const fetchComplaints = async () => {
@@ -33,7 +42,6 @@ const Home = () => {
         }
         setComplaints(data.complaintDetails);
         setUpvotedComplaints(data.upvotedComplaints.map((c: any) => String(c)));
-        console.log(upvotedComplaints);
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
         setComplaints([]); // Set complaints to an empty array in case of error
@@ -51,41 +59,41 @@ const Home = () => {
         method: "POST",
         credentials: "include",
       });
-  
+
       const data = await res.json();
-      console.log("Upvote API Response:", data);
-  
+
       if (!data.ok) {
         console.error("Failed to toggle upvote:", data.error);
         return;
       }
-  
+
       setComplaints((prevComplaints) => {
-        console.log("Previous Complaints State:", prevComplaints);
         const newComplaints = prevComplaints.map((complaint) =>
           complaint.id === complaintId
             ? {
                 ...complaint,
-                upvotes: data.upvotes
+                upvotes: data.upvotes,
               }
             : complaint
         );
-        console.log("Updated Complaints:", newComplaints);
         return [...newComplaints]; // Ensure a fresh array
       });
-  
+
       setUpvotedComplaints((prevUpvoted) => {
-        console.log("Previous Upvoted Complaints:", prevUpvoted);
         return data.hasUpvoted
           ? [...new Set([...prevUpvoted, complaintId])]
           : prevUpvoted.filter((id) => id !== complaintId);
       });
-  
     } catch (error) {
       console.error("Failed to upvote the complaint:", error);
     }
   };
-  
+
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -117,7 +125,8 @@ const Home = () => {
                   className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"
                 />
                 <div className="flex flex-col gap-4">
-                  {complaints.map((complaint) => (
+                  
+                  {currentComplaints.map((complaint) => (
                     <ComplaintCard
                       key={complaint.id}
                       complaint={complaint}
@@ -138,6 +147,15 @@ const Home = () => {
             )}
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(complaints.length / complaintsPerPage)}
+          onPageChange={onPageChange}
+          className="mt-5 self-center"
+          showIcons
+          theme={customThemePagination}
+          onPageChange={handlePageChange}
+        />
       </div>
     </div>
   );
