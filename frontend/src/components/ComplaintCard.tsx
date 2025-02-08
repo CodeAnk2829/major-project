@@ -92,13 +92,9 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
     src: attachment.imageUrl,
   }));
 
-  const createdAtDisplay = moment.utc(complaint.createdAt)
-    .calendar(null, {
-      sameDay: "[Today] h:mm A",
-      lastDay: "[Yesterday] h:mm A",
-      lastWeek: "dddd h:mm A",
-      sameElse: "DD/MM/YYYY h:mm A",
-    });
+  const createdAtDisplay = moment(complaint.createdAt)
+    .tz('Europe/London')
+    .format('dddd, Do MMMM YYYY, h:mm A');
   return (
     <div className="border rounded-lg shadow-md bg-white flex flex-col" style={{width: '1000px', height: 'auto'}}>
       {/* Header */}
