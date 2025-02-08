@@ -1,4 +1,11 @@
-import { Badge, Button, Carousel, Modal, Spinner, Tooltip } from "flowbite-react";
+import {
+  Badge,
+  Button,
+  Carousel,
+  Modal,
+  Spinner,
+  Tooltip,
+} from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
@@ -24,19 +31,21 @@ function ComplaintPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [slides, setSlides] = useState<{ src: string }[]>([]);
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const fetchComplaint = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/complaint/get-complaint/${id}`);
+        const response = await fetch(`/api/v1/complaint/get/complaint/${id}`);
         const data = await response.json();
         console.log(data);
         setComplaint(data);
         setHasUserUpvoted(data.hasUpvoted);
 
         if (data.attachments.length > 0) {
-          setSlides(data.attachments.map((attachment) => ({ src: attachment.imageUrl })));
+          setSlides(
+            data.attachments.map((attachment) => ({ src: attachment.imageUrl }))
+          );
         }
       } catch (err) {
         console.error("Error fetching complaint:", err);
@@ -52,38 +61,38 @@ function ComplaintPage() {
   if (loading)
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Spinner size="xl" className="fill-[rgb(60,79,131)]"/>
+        <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
       </div>
     );
-    if (error) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <p className="text-red-500">{error}</p>
-        </div>
-      );
-    }
-    const handleUpvote = async () => {
-      try {
-        const res = await fetch(`/api/v1/complaint/upvote/${id}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        const data = await res.json();
-  
-        if (data.ok) {
-          // Update the complaint with new upvote count and status
-          setComplaint(prev => ({
-            ...prev,
-            upvotes: data.upvotes
-          }));
-          setHasUserUpvoted(data.hasUpvoted);
-        } else {
-          console.error("Failed to toggle upvote:", data.error);
-        }
-      } catch (error) {
-        console.error("Failed to upvote the complaint:", error);
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+  const handleUpvote = async () => {
+    try {
+      const res = await fetch(`/api/v1/complaint/upvote/${id}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        // Update the complaint with new upvote count and status
+        setComplaint((prev) => ({
+          ...prev,
+          upvotes: data.upvotes,
+        }));
+        setHasUserUpvoted(data.hasUpvoted);
+      } else {
+        console.error("Failed to toggle upvote:", data.error);
       }
-    };
+    } catch (error) {
+      console.error("Failed to upvote the complaint:", error);
+    }
+  };
 
   const handleUpdate = async () => {
     console.log("complaint update clicked");
@@ -93,34 +102,39 @@ function ComplaintPage() {
   const handleDelete = async () => {
     setDeleteModal(false);
     try {
-      const res = await fetch(`/api/v1/complaint/delete/${id}`,{
-        method : 'DELETE'
+      const res = await fetch(`/api/v1/complaint/delete/${id}`, {
+        method: "DELETE",
       });
       const data = await res.json();
-      if(!res.ok){
+      if (!res.ok) {
         console.log(data.error);
-      }else{
-        navigate('/')
+      } else {
+        navigate("/");
       }
     } catch (error) {
       console.log(error.message);
     }
   };
-  const createdAtDisplay =
-    moment().diff(moment(complaint.createdAt), "days") > 5
-      ? moment(complaint.createdAt).format("DD/MM/YYYY")
-      : moment(complaint.createdAt).fromNow();
+  const localDate = new Date(complaint.createdAt);
+  const createdAtDisplay = moment(complaint.createdAt)
+  .tz('Europe/London')
+  .format('dddd, Do MMMM YYYY, h:mm A');
   return (
     <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">
       <h1 className="text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl">
         {complaint && complaint.title}
       </h1>
       <div className="mt-4 flex flex-wrap gap-2 self-center mt-5">
-        {complaint && complaint.tags.length >0 && complaint.tags.map((tag: string, index: number) => (
-          <Badge key={index} color="info">
-            {tag.tags.tagName}
-          </Badge>
-        ))}
+        {complaint &&
+          complaint.tags.length > 0 &&
+          complaint.tags.map((tag: string, index: number) => (
+            <Badge key={index} color="info">
+              {tag}
+            </Badge>
+          ))}
+      </div>
+      <div className="mt-4 flex self-center">
+        <Badge color="purple">{complaint.location}</Badge>
       </div>
       <div className="mt-4 flex gap-4 self-center">
         <Badge color={statusColors[complaint.status]}>{complaint.status}</Badge>
@@ -163,35 +177,33 @@ function ComplaintPage() {
 
       {/* Lightbox for Full-Screen View */}
       <Lightbox
-            open={lightboxOpen}
-            close={() => setLightboxOpen(false)}
-            index={lightboxIndex}
-            slides={slides}
-            on={{
-              view: ({ index }) => setLightboxIndex(index),
-            }}
-            animation={{ fade: 0 }}
-            controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
-            styles={{
-              container: { backgroundColor: "rgba(0,0,0,0.8)" },
-              root: {
-                "--yarl__color_button": "rgb(99,99,99)",
-                "--yarl__color_button_active": "rgb(158, 158, 158)",
-              },
-            }}
-          />
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex}
+        slides={slides}
+        on={{
+          view: ({ index }) => setLightboxIndex(index),
+        }}
+        animation={{ fade: 0 }}
+        controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+        styles={{
+          container: { backgroundColor: "rgba(0,0,0,0.8)" },
+          root: {
+            "--yarl__color_button": "rgb(99,99,99)",
+            "--yarl__color_button_active": "rgb(158, 158, 158)",
+          },
+        }}
+      />
       <div className="mt-4 flex gap-4 self-center border-b border-slate-500">
         <p>
-          <strong>Created by:</strong> {complaint &&complaint.userName}
+          <strong>Created by:</strong> {complaint && complaint.complainerName}
         </p>
         <p>
           <strong>Created:</strong> {complaint && createdAtDisplay}
         </p>
-        <p>
-          {/* <strong>Location:</strong> Location */}
-        </p>
+        <p>{/* <strong>Location:</strong> Location */}</p>
         <p className="flex">
-        <button
+          <button
             className={`text-xl ${
               hasUserUpvoted ? "text-blue-800" : "text-gray-600"
             } hover:text-blue-800`}
@@ -208,7 +220,7 @@ function ComplaintPage() {
         className="p-3 max-w-2xl mx-auto w-full"
         dangerouslySetInnerHTML={{ __html: complaint && complaint.description }}
       ></div>
-      {currentUser.id === complaint.userId && (
+      {
         <div className="mt-8 flex gap-4 self-center">
           <Tooltip
             content={
@@ -228,20 +240,26 @@ function ComplaintPage() {
               Update
             </Button>
           </Tooltip>
-          <Tooltip content={
+          <Tooltip
+            content={
               complaint.status !== "ASSIGNED"
                 ? "Complaint is assigned to a resolver and cannot be updated"
-                : "edit complaint details"
+                : "delete complaint"
             }
             arrow={false}
-            trigger="hover">
-          <Button color="failure" onClick={() => setDeleteModal(true)} disabled={complaint.status !== "ASSIGNED"}>
-            <AiOutlineDelete className="mr-2" />
-            Delete
-          </Button>
+            trigger="hover"
+          >
+            <Button
+              color="failure"
+              onClick={() => setDeleteModal(true)}
+              disabled={complaint.status !== "ASSIGNED"}
+            >
+              <AiOutlineDelete className="mr-2" />
+              Delete
+            </Button>
           </Tooltip>
         </div>
-      )}
+      }
       <Modal show={deleteModal} onClose={() => setDeleteModal(false)} size="lg">
         <Modal.Header>Delete Complaint</Modal.Header>
         <Modal.Body>
@@ -256,9 +274,11 @@ function ComplaintPage() {
           </Button>
         </Modal.Footer>
       </Modal>
-      <UpdateComplaintModal isOpen={updateModalOpen}
-        onClose={() => setUpdateModalOpen(false)} 
-        complaintIdProp={id}/>
+      <UpdateComplaintModal
+        isOpen={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        complaintIdProp={id}
+      />
     </main>
   );
 }
