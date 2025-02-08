@@ -22,16 +22,17 @@ import { HiExclamation } from "react-icons/hi";
 import Lightbox from "yet-another-react-lightbox";
 import Masonry from "react-masonry-css";
 import { identity } from "@cloudinary/url-gen/backwards/utils/legacyBaseUtil";
-import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
+import {
+  customThemeSelect,
+  customThemeTi,
+} from "../utils/flowbiteCustomThemes";
 
 const CreateComplaintModal = ({
   isOpen,
   onClose,
-  tagsFromBackend,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  tagsFromBackend: { id: number; name: string }[];
 }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -46,7 +47,7 @@ const CreateComplaintModal = ({
   const [parentLocation, setParentLocation] = useState("");
   const [childLocation, setChildLocation] = useState("");
   const [block, setBlock] = useState("");
-  // const [locations, setLocations] = useState([]); //for api call
+  const [locations, setLocations] = useState([]);
   const [categorizedLocations, setCategorizedLocations] = useState({});
   const [file, setFile] = useState(null);
   const [imageUploadProgress, setImageUploadProgress] = useState(null);
@@ -57,7 +58,14 @@ const CreateComplaintModal = ({
   const [lightboxOpen, setLightboxOpen] = React.useState(false);
   const [lightboxIndex, setLightboxIndex] = React.useState(-1);
   const [step, setStep] = useState(1);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [tagMapping, setTagMapping] = useState([]);
   const navigate = useNavigate();
+  interface Location {
+    id: number;
+    locationName: string;
+  }
 
   //For Lightbox preview
   const breakpointColumnsObj = {
@@ -67,31 +75,28 @@ const CreateComplaintModal = ({
     500: 1,
   };
 
-  //TODO: Handle these from the backend + location values in select option
-  const locations = [
-    {
-      id: 1,
-      locationName: "Hostel-10-A",
-    },
-    {
-      id: 2,
-      locationName: "Hostel-10-B",
-    },
-    {
-      id: 3,
-      locationName: "Hostel-12",
-    },
-    {
-      id: 4,
-      locationName: "Sports Complex",
-    },
-  ];
-
   useEffect(() => {
-    console.log("Handle tag fetch and location fetch here");
-    categorizeLocations(locations);
+    fetchLocations();
+    fetchTags();
   }, []);
-  const categorizeLocations = (locations) => {
+
+  const fetchLocations = async () => {
+    setLoadingLocations(true);
+    try {
+      const res = await fetch("/api/v1/admin/get/locations");
+      const data = await res.json();
+      if (data.ok) {
+        setLocations(data.locations);
+        categorizeLocations(data.locations);
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const categorizeLocations = (locations: Location[]) => {
     const categorized = {};
 
     locations.forEach(({ id, locationName }) => {
@@ -163,44 +168,20 @@ const CreateComplaintModal = ({
     setFormData({ ...formData, locationId });
   };
 
-
-
-  //TODO: Handle from backend
-  const tagMapping = {
-    1: "Hostel",
-    2: "Department",
-    3: "Mess",
-    4: "Cleaning",
-    5: "Sports",
-    6: "Data Center",
-    7: "Internet",
-    8: "WiFi",
-    9: "LAN",
-    10: "Electricity",
-    11: "Equipment",
-    12: "Carpentry",
-    13: "Dispensary",
-    14: "Ambulance",
-    15: "Medical Service",
-    16: "Canteen",
-    17: "Library",
-    18: "Bus Service",
-    19: "Ragging", //
-    20: "Personal Issue", //
-    21: "Lab",
-    22: "Lift",
-    23: "Vending Machine",
-    24: "Projector",
-    25: "Classroom",
-    26: "Stationary",
-    27: "Furniture",
-    28: "Plumbing",
-    29: "Gardening",
-    30: "Security",
-    31: "Parking",
-    32: "Water",
-    33: "All",
-    34: "Others",
+  const fetchTags = async () => {
+    setLoadingTags(true);
+    try {
+      const res = await fetch("/api/v1/admin/get/tags");
+      const data = await res.json();
+      if (data.ok) {
+        setTagMapping(data.tags);
+        console.log(data);
+      }
+    } catch (error) {
+      console;
+    } finally {
+      setLoadingTags(false);
+    }
   };
 
   const resetForm = () => {
@@ -228,7 +209,6 @@ const CreateComplaintModal = ({
     setStep(1);
   };
 
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -236,33 +216,36 @@ const CreateComplaintModal = ({
   };
 
   const handleAccessChange = () => {
-    if (formData.tags.includes(19) || formData.tags.includes(20)) {
+    const sensitiveTags = tagMapping.filter(tag => ["Ragging", "Personal Issue"].includes(tag.tagName));
+    const sensitiveTagIds = sensitiveTags.map(tag => tag.id);
+
+    if (formData.tags.some(tag => sensitiveTagIds.includes(tag.id))) {
       setTooltipError(true);
-      setTimeout(() => setTooltipError(false), 3000); // Hide tooltip after 3 seconds
+      setTimeout(() => setTooltipError(false), 3000);
       return;
     }
+
     setFormData({
       ...formData,
       access: formData.access === "PRIVATE" ? "PUBLIC" : "PRIVATE",
     });
   };
 
-  //TODO: Change this after backend fetching
-  const handleTagSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedTagId = parseInt(e.target.value, 10); // Get tag ID
+  const handleTagSelection = (e) => {
+    const selectedTagId = parseInt(e.target.value, 10);
+    const selectedTag = tagMapping.find(tag => tag.id === selectedTagId);
 
-    if (!formData.tags.includes(selectedTagId)) {
-      const updatedTags = [...formData.tags, selectedTagId];
+    if (!formData.tags.some(tag => tag.id === selectedTagId)) {
+      const updatedTags = [...formData.tags, selectedTag];
+      const sensitiveTags = ["Ragging", "Personal Issue"];
 
-      if (updatedTags.includes(19) || updatedTags.includes(20)) {
-        //tagid for Ragging and personal issue
+      if (updatedTags.some(tag => sensitiveTags.includes(tag.tagName))) {
         setFormData({ ...formData, tags: updatedTags, access: "PRIVATE" });
       } else {
         setFormData({ ...formData, tags: updatedTags });
       }
     }
   };
-
 
   const handleUploadImage = async () => {
     try {
@@ -310,9 +293,9 @@ const CreateComplaintModal = ({
     }
   };
 
-  //TODO: Change logic for preview
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     //validations
     if (!formData.title || !formData.description || !formData.locationId) {
       setCreateError("Please fill all the fields");
@@ -325,6 +308,12 @@ const CreateComplaintModal = ({
     if (formData.description.length < 3) {
       setCreateError("Description must be at least 3 characters long");
     }
+
+    const payload = {
+      ...formData,
+      tags: formData.tags.map(tag => tag.id),
+    };
+
     try {
       setSubmitting(true);
       console.log(formData);
@@ -334,7 +323,7 @@ const CreateComplaintModal = ({
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
@@ -409,6 +398,7 @@ const CreateComplaintModal = ({
                       value={parentLocation}
                       onChange={handleParentChange}
                       theme={customThemeSelect}
+                      disabled={loadingLocations}
                     >
                       <option value="">Select Category</option>
                       {Object.keys(categorizedLocations).map((parent) => (
@@ -483,21 +473,22 @@ const CreateComplaintModal = ({
                     onChange={handleTagSelection}
                     theme={customThemeSelect}
                     color="gray"
+                    disabled={loadingTags}
                   >
                     <option value="">Select a Tag</option>
-                    {Object.entries(tagMapping).map(([id, name]) => (
-                      <option key={id} value={id}>
-                        {name}
+                    {tagMapping.map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.tagName}
                       </option>
                     ))}
                   </Select>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {formData.tags.map((tagId) => (
+                    {formData.tags.map((tag) => (
                       <span
-                        key={tagId}
+                        key={tag.id}
                         className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2 mb-2"
                       >
-                        {tagMapping[tagId]}{" "}
+                        {tag.tagName}
                         {/* Get tag name from the mapping */}
                         <button
                           type="button"
@@ -505,7 +496,7 @@ const CreateComplaintModal = ({
                           onClick={() =>
                             setFormData({
                               ...formData,
-                              tags: formData.tags.filter((id) => id !== tagId),
+                              tags: formData.tags.filter((t) => t.id !== tag.id),
                             })
                           }
                         >
@@ -664,7 +655,8 @@ const CreateComplaintModal = ({
             </p>
 
             <p className="flex items-center gap-2">
-              <strong>Location:</strong> {getLocationNameById(formData.locationId)}
+              <strong>Location:</strong>{" "}
+              {getLocationNameById(formData.locationId)}
               <Tooltip content="This cannot be edited later">
                 <IoInformationCircleOutline />
               </Tooltip>
@@ -675,12 +667,12 @@ const CreateComplaintModal = ({
               <p className="flex items-center gap-2">
                 <strong>Tags:</strong>
               </p>
-              {formData.tags.map((tagId) => (
+              {formData.tags.map((tag) => (
                 <span
-                  key={tagId}
+                  key={tag.id}
                   className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded"
                 >
-                  {tagMapping[tagId] || "Unknown"}
+                  {tag.tagName || "Unknown"}
                 </span>
               ))}
             </div>
