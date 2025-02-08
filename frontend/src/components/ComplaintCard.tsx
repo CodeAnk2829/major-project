@@ -1,4 +1,4 @@
-import { Badge, Button } from "flowbite-react";
+import { Badge, Button, Tooltip } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import moment from "moment-timezone";
@@ -73,7 +73,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   showUpvote,
   showActions,
   showBadges,
-  showInchargeActions=false,
+  showInchargeActions = false,
   handleUpvote,
   upvotedComplaints,
   onUpdate,
@@ -85,7 +85,8 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const isUpvoted = showUpvote && upvotedComplaints.includes(String(complaint.id));
+  const isUpvoted =
+    showUpvote && upvotedComplaints.includes(String(complaint.id));
 
   // Prepare images for the Lightbox
   const slides = complaint.attachments.map((attachment) => ({
@@ -93,10 +94,13 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   }));
 
   const createdAtDisplay = moment(complaint.createdAt)
-    .tz('Europe/London')
-    .format('dddd, Do MMMM YYYY, h:mm A');
+    .tz("Europe/London")
+    .format("dddd, Do MMMM YYYY, h:mm A");
   return (
-    <div className="border rounded-lg shadow-md bg-white flex flex-col" style={{width: '1000px', height: 'auto'}}>
+    <div
+      className="border rounded-lg shadow-md bg-white flex flex-col"
+      style={{ width: "1000px", height: "auto" }}
+    >
       {/* Header */}
       {/* Profile Section */}
       {showProfile && (
@@ -242,20 +246,40 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
 
         {showActions && (
           <div className="flex items-center gap-2">
-            <Button
-              color="light"
-              disabled={complaint.status !== "ASSIGNED"}
-              onClick={() => onUpdate?.(complaint.id)}
+            <Tooltip
+              content={
+                complaint.status === "ASSIGNED"
+                  ? "update complaint details"
+                  : "cannot update"
+              }
+              arrow={false}
+              style="light"
             >
-              Update
-            </Button>
-            <Button
-              color="failure"
-              disabled={complaint.status !== "ASSIGNED"}
-              onClick={() => onDelete && onDelete(complaint.id)}
+              <Button
+                color="light"
+                disabled={complaint.status !== "ASSIGNED"}
+                onClick={() => onUpdate?.(complaint.id)}
+              >
+                Update
+              </Button>
+            </Tooltip>
+            <Tooltip
+              content={
+                complaint.status === "ASSIGNED"
+                  ? "delete complaint"
+                  : "cannot delete"
+              }
+              arrow={false}
+              style="light"
             >
-              Delete
-            </Button>
+              <Button
+                color="failure"
+                disabled={complaint.status !== "ASSIGNED"}
+                onClick={() => onDelete && onDelete(complaint.id)}
+              >
+                Delete
+              </Button>
+            </Tooltip>
           </div>
         )}
         {showInchargeActions && (

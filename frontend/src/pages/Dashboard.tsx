@@ -28,14 +28,13 @@ function Dashboard() {
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/v1/complaint/get-user/${currentUser.id}`
+          `/api/v1/complaint/get/user-complaints`
         );
         const data = await response.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to fetch complaints.");
         }
-        setUserComplaints(data.complaints);
-        console.log(userComplaints);
+        setUserComplaints(data.complaintDetails);
       } catch (err) {
         console.error(err);
         setError("Failed to fetch complaints. Please try again later.");
