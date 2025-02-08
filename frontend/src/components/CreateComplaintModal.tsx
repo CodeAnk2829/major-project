@@ -178,7 +178,7 @@ const CreateComplaintModal = ({
         console.log(data);
       }
     } catch (error) {
-      console;
+      console.error("Error fetching tags:", error);
     } finally {
       setLoadingTags(false);
     }
