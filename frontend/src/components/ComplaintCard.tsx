@@ -89,7 +89,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
     showUpvote && upvotedComplaints.includes(String(complaint.id));
 
   // Prepare images for the Lightbox
-  const slides = complaint.attachments.map((attachment) => ({
+  const slides = complaint && complaint.attachments && complaint.attachments.length > 0 && complaint.attachments.map((attachment) => ({
     src: attachment.imageUrl,
   }));
 

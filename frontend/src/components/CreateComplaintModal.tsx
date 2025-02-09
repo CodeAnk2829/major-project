@@ -16,12 +16,10 @@ import React, { useEffect, useState } from "react";
 import { buildStyles, CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { HiExclamation } from "react-icons/hi";
 import Lightbox from "yet-another-react-lightbox";
 import Masonry from "react-masonry-css";
-import { identity } from "@cloudinary/url-gen/backwards/utils/legacyBaseUtil";
 import {
   customThemeSelect,
   customThemeTi,
