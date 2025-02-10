@@ -23,6 +23,7 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [complaintsPerPage, setComplaintsPerPage] = useState(10);
   const [newComplaintsAvailable, setNewComplaintsAvailable] = useState(false);
+  const [filteredComplaints, setFilteredComplaints] = useState<Complaint[]>([]);
   const onPageChange = (page: number) => setCurrentPage(page);
   const lastComplaintIndex = currentPage * complaintsPerPage;
   const firstComplaintIndex = lastComplaintIndex - complaintsPerPage;
@@ -34,8 +35,6 @@ const Home = () => {
   const handleWebSocketUpdate = useCallback((message) => {
     switch (message.type) {
       case "CREATED":
-        setNewComplaintsAvailable(true);
-        break;
       case "UPDATED":
         setNewComplaintsAvailable(true);
         break;
@@ -66,10 +65,12 @@ const Home = () => {
           throw new Error("Unexpected response format.");
         }
         setComplaints(data.complaintDetails);
+        setFilteredComplaints(data.complaintDetails);
         setUpvotedComplaints(data.upvotedComplaints.map((c: any) => String(c)));
       } catch (error) {
         console.error("Error fetching complaints:", error.message);
-        setComplaints([]); // Set complaints to an empty array in case of error
+        setComplaints([]);
+        setFilteredComplaints([]);
       } finally {
         setLoading(false); // Ensure loading stops regardless of success or failure
       }
@@ -132,7 +133,24 @@ const Home = () => {
       console.error("Error fetching new complaints:", error);
     }
   };
+  const handleSearch = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setFilteredComplaints(complaints);
+      return;
+    }
 
+    const lowercasedTerm = searchTerm.toLowerCase();
+    const filtered = complaints.filter((complaint) =>
+      complaint.title?.toLowerCase().includes(lowercasedTerm) ||
+      complaint.description?.toLowerCase().includes(lowercasedTerm) ||
+      complaint.complainerName?.toLowerCase().includes(lowercasedTerm) ||
+      complaint.tags?.some(tag => tag.toLowerCase().includes(lowercasedTerm)) ||
+      complaint.location?.toLowerCase().includes(lowercasedTerm)
+    );
+
+    setFilteredComplaints(filtered);
+    setCurrentPage(1); // Reset to first page on new search
+  };
   return (
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
@@ -143,18 +161,18 @@ const Home = () => {
       {/* Main Section */}
       <div className="w-full md:w-3/4 flex flex-col px-6 py-4">
         <div className="md:visible mb-8">
-          <SearchBar />
+          <SearchBar onSearch={handleSearch} />
         </div>
         <AnimatePresence mode="popLayout">
           {newComplaintsAvailable && (
-              <Button
-                onClick={fetchNewComplaints}
-                className="mb-4 w-1/4 self-center bg-[rgb(60,79,131)]"
-                size="lg"
-              >
-                New Complaints Available &nbsp;
-                <IoMdRefresh size={24} />
-              </Button>
+            <Button
+              onClick={fetchNewComplaints}
+              className="mb-4 w-1/4 self-center bg-[rgb(60,79,131)]"
+              size="lg"
+            >
+              New Complaints Available &nbsp;
+              <IoMdRefresh size={24} />
+            </Button>
           )}
 
           {loading ? (
@@ -175,27 +193,28 @@ const Home = () => {
                     className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"
                   />
                   <div className="flex flex-col gap-4">
-                    {currentComplaints.map((complaint) => (
-                      <motion.div
-                        key={complaint.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        layout
-                      >
-                        <ComplaintCard
+                    {filteredComplaints
+                      .slice(firstComplaintIndex, lastComplaintIndex)
+                      .map((complaint) => (
+                        <motion.div
                           key={complaint.id}
-                          complaint={complaint}
-                          showProfile={true}
-                          showUpvote={true}
-                          handleUpvote={handleUpvote}
-                          upvotedComplaints={upvotedComplaints}
-                          showActions={false}
-                          showBadges={false}
-                        />
-                      </motion.div>
-                    ))}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3 }}
+                          layout
+                        >
+                          <ComplaintCard
+                            complaint={complaint}
+                            showProfile={true}
+                            showUpvote={true}
+                            handleUpvote={handleUpvote}
+                            upvotedComplaints={upvotedComplaints}
+                            showActions={false}
+                            showBadges={false}
+                          />
+                        </motion.div>
+                      ))}
                   </div>
                 </div>
               ) : (
@@ -207,7 +226,7 @@ const Home = () => {
           )}
           <Pagination
             currentPage={currentPage}
-            totalPages={Math.ceil(complaints.length / complaintsPerPage)}
+            totalPages={Math.ceil(filteredComplaints.length / complaintsPerPage)}
             onPageChange={onPageChange}
             className="mt-5 self-center"
             showIcons

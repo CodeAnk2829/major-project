@@ -201,6 +201,11 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
             </Badge>
           ))}
         </div>
+        <div className="flex flex-wrap gap-2 mt-3">
+          {complaint && complaint.location && (
+            <Badge color="warning" className="text-sm font-medium">{complaint.location}</Badge>
+          )}
+        </div>
         {showBadges && (
           <div className="flex mt-2">
             <Badge

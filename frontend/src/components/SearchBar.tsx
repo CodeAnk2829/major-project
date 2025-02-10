@@ -1,31 +1,34 @@
 import { Button, TextInput } from "flowbite-react";
-import React from "react";
+import React, { useEffect } from "react";
 import { AiOutlineSearch } from "react-icons/ai";
 import { customThemeTi } from "../utils/flowbiteCustomThemes";
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-  // const urlParams = new URLSearchParams(location.search);
-  // urlParams.set('searchTerm', searchTerm);
-  // const searchQuery = urlParams.toString();
-  // navigate(`/search?${searchQuery}`);
+type SearchBarProps = {
+  onSearch: (searchTerm: string) => void;
 };
 
-function SearchBar() {
+function SearchBar({ onSearch }: SearchBarProps) {
+  const [searchTerm, setSearchTerm] = React.useState('');
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    onSearch(term);
+  };
+
   return (
     <div className="max-w-max">
-      <form onSubmit={handleSubmit}>
-        <TextInput
+      <TextInput
           type="text"
-          placeholder="Search..."
+          placeholder="Search by title, description, or creator..."
           rightIcon={AiOutlineSearch}
           className="w-full p-2.5"
           theme={customThemeTi}
           color="gray"
-          //   value={searchTerm}
-          //   onChange={(e)=> setSearchTerm(e.target.value)}
+          value={searchTerm}
+          onChange={handleSearchChange}
         />
-      </form>
+
     </div>
   );
 }
