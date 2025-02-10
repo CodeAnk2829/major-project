@@ -20,7 +20,8 @@ function InchargeSidebar() {
     const { currentUser } = useSelector((state) => state.user);
     const navigate = useNavigate();
     const location = useLocation();
-  
+
+    //TODO: add logout
     const handleSignout = async () => {
       try {
         const res = await fetch("", { method: "POST" });
@@ -38,6 +39,11 @@ function InchargeSidebar() {
   
     const inchargeSidebarOptions = [
       {
+        label: "Manage Complaints", //unsolved complaints
+        icon: <HiClipboardList className="text-2xl" />,
+        path: "/incharge/complaints",
+      },
+      {
         label: "Dashboard", //solved complaints
         icon: <HiChartPie className="text-2xl" />,
         path: "/incharge/dashboard",
@@ -46,11 +52,6 @@ function InchargeSidebar() {
         label: "Notifications",
         icon: <HiBell className="text-2xl" />,
         path: "/incharge/notifications",
-      },
-      {
-        label: "Manage Complaints", //unsolved complaints
-        icon: <HiClipboardList className="text-2xl" />,
-        path: "/incharge/complaints",
       },
     ];
   

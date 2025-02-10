@@ -92,11 +92,11 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
       {showProfile && (
         <div className="flex items-center border-b border-gray-200 p-4">
           <div className="w-12 h-12 bg-[rgb(60,79,131)] rounded-full flex items-center justify-center text-white font-bold text-lg">
-            {getInitials(complaint.user.name || "User")}
+            {getInitials(complaint.complainerName || "User")}
           </div>
           <div className="ml-3">
             <span className="block text-sm font-bold text-gray-700">
-              @{complaint.user.name}
+              @{complaint.complainerName}
             </span>
             <span className="text-xs text-gray-500">{createdAtDisplay}</span>
           </div>
@@ -172,7 +172,7 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
           {complaint.description.length > 200 ? (
             <>
               {complaint.description.substring(0, 200)}...{" "}
-              <Link to={`/complaint/${complaint.id}`} className="text-blue-500">
+              <Link to={`/incharge/complaint/${complaint.id}`} className="text-blue-500">
                 read more
               </Link>
             </>
@@ -183,7 +183,7 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
         <div className="flex flex-wrap gap-2 mt-3">
           {complaint.tags.map((tag, index) => (
             <Badge key={index} color="info" className="text-sm font-medium">
-              {tag.tags.tagName}
+              {tag}
             </Badge>
           ))}
         </div>

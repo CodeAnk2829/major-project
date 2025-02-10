@@ -1,10 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import InchargeSidebar from "../components/InchargeSidebar";
-import { Button, Card, Modal, Select, Spinner, TextInput, Toast } from "flowbite-react";
+import {
+  Button,
+  Card,
+  Modal,
+  Select,
+  Spinner,
+  TextInput,
+  Toast,
+} from "flowbite-react";
 import IssueInchargeComplaintCard from "../components/IssueInchargeComplaintCard";
 import ScrollToTop from "react-scroll-to-top";
 import { FaChevronUp } from "react-icons/fa";
 import { customThemeTi } from "../utils/flowbiteCustomThemes";
+import { useComplaintWebSocket } from "../hooks/useComplaintWebSocket";
+import { AnimatePresence, motion } from "framer-motion";
+import { IoMdRefresh } from "react-icons/io";
 
 function InchargeManageComplaints() {
   const [complaints, setComplaints] = useState([]);
@@ -16,32 +27,51 @@ function InchargeManageComplaints() {
   const [selectedResolver, setSelectedResolver] = useState<String | null>("");
   const [filteredResolvers, setFilteredResolvers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newComplaintsAvailable, setNewComplaintsAvailable] = useState(false);
 
   useEffect(() => {
-    const fetchInchargeComplaints = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/v1/incharge/get/all-complaints", {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await res.json();
-        if (data.ok) {
-          setComplaints(data.complaints);
-        } else {
-          throw new Error(data.error);
-        }
-      } catch (error) {
-        setToastMessage(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchInchargeComplaints();
     fetchResolvers();
   }, []);
+
+  const fetchInchargeComplaints = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/incharge/get/active-complaints", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setComplaints(data.complaintDetails);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      setToastMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchNewComplaints = async () => {
+    try {
+      const res = await fetch("/api/v1/incharge/get/active-complaints", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch new complaints.");
+      }
+      const data = await res.json();
+      setComplaints(data.complaintDetails);
+      setNewComplaintsAvailable(false);
+    } catch (error) {
+      console.error("Error fetching new complaints:", error);
+    }
+  };
 
   //TODO: May need to change this api call for fetching location/tag specific resolvers
   const fetchResolvers = async () => {
@@ -111,7 +141,8 @@ function InchargeManageComplaints() {
         throw new Error(data.error);
       }
     } catch (error) {
-      setToastMessage(error.message);
+      setToastMessage("An unexpected error occurred.");
+      console.error(error.message)
     }
   };
 
@@ -155,18 +186,56 @@ function InchargeManageComplaints() {
   };
 
   const handleSearchChange = (e) => {
-    const query = e.target.value.toLowerCase();  // Convert the input to lowercase for case-insensitive search
-    setSearchQuery(query);  // Update the searchQuery state
-  
+    const query = e.target.value.toLowerCase(); // Convert the input to lowercase for case-insensitive search
+    setSearchQuery(query); // Update the searchQuery state
+
     // Filter resolvers by name or occupation matching the search query
-    const filtered = resolvers.filter(resolver =>
-      resolver.name.toLowerCase().includes(query) ||
-      resolver.occupation.toLowerCase().includes(query)
+    const filtered = resolvers.filter(
+      (resolver) =>
+        resolver.name.toLowerCase().includes(query) ||
+        resolver.occupation.toLowerCase().includes(query)
     );
-  
-    setFilteredResolvers(filtered);  // Update the filteredResolvers state with the matching results
+
+    setFilteredResolvers(filtered); // Update the filteredResolvers state with the matching results
   };
-  
+
+  //TODO: may need to change this based on backend web socket
+  const handleWebSocketUpdate = useCallback((message) => {
+    switch (message.type) {
+      case "CREATED":
+        // Fetch the new complaint details
+        setNewComplaintsAvailable(true);
+        break;
+
+      case "ESCALATED":
+        setComplaints((prevComplaints) => {
+          const filteredComplaints = prevComplaints.filter(
+            (complaint) => complaint.id !== message.data.complaintId
+          );
+          return filteredComplaints;
+        });
+        setToastMessage("A complaint has been escalated");
+        break;
+
+      case "RESOLVED":
+        setComplaints((prevComplaints) => {
+          const filteredComplaints = prevComplaints.filter(
+            (complaint) => complaint.id !== message.data.complaintId
+          );
+          return filteredComplaints;
+        });
+        break;
+
+      case "UPDATED":
+        //TODO: on complaint update like Whatsapp write updated/edited
+        fetchInchargeComplaints();
+        break;
+
+      default:
+        console.log("Unknown message type:", message.type);
+    }
+  }, []);
+  useComplaintWebSocket(handleWebSocketUpdate);
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -177,6 +246,16 @@ function InchargeManageComplaints() {
 
       {/* Main Section */}
       <div className="w-full md:w-3/4 flex flex-col px-6 py-4">
+        {newComplaintsAvailable && (
+          <Button
+            onClick={fetchNewComplaints}
+            className="mb-4 w-1/4 self-center bg-[rgb(60,79,131)]"
+            size="lg"
+          >
+            New Complaints Available &nbsp;
+            <IoMdRefresh size={24} />
+          </Button>
+        )}
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
@@ -194,17 +273,28 @@ function InchargeManageComplaints() {
                   className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"
                 />
                 <div className="flex flex-col gap-4">
-                  {complaints.map((complaint) => (
-                    <IssueInchargeComplaintCard
-                      key={complaint.id}
-                      complaint={complaint}
-                      showProfile={true}
-                      showBadges={true}
-                      onResolve={handleResolve}
-                      onDelegate={handleDelegate}
-                      onEscalate={handleEscalate}
-                    />
-                  ))}
+                  <AnimatePresence mode="popLayout">
+                    {complaints.map((complaint) => (
+                      <motion.div
+                        key={complaint.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        layout
+                      >
+                        <IssueInchargeComplaintCard
+                          key={complaint.id}
+                          complaint={complaint}
+                          showProfile={true}
+                          showBadges={true}
+                          onResolve={handleResolve}
+                          onDelegate={handleDelegate}
+                          onEscalate={handleEscalate}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
             ) : (
@@ -216,7 +306,7 @@ function InchargeManageComplaints() {
         )}
 
         {toastMessage && (
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed top-4 right-5 z-50">
             <Toast className="bg-blue-500 text-white">
               {toastMessage}
               <Toast.Toggle onDismiss={() => setToastMessage(false)} />
@@ -228,7 +318,7 @@ function InchargeManageComplaints() {
         <Modal show={delegateModalOpen} onClose={handleCloseModal}>
           <Modal.Header>Delegate Complaint</Modal.Header>
           <Modal.Body>
-          <TextInput
+            <TextInput
               type="text"
               placeholder="Search by name or occupation"
               value={searchQuery}
@@ -237,13 +327,27 @@ function InchargeManageComplaints() {
               theme={customThemeTi}
             />
             <div className="space-y-4">
-              {filteredResolvers && filteredResolvers.length > 0 && filteredResolvers.map((resolver) => (
-                <Card key={resolver.id} className={`cursor-pointer border ${(selectedResolver?.id === resolver.id) ? 'bg-sky-200' : 'border-gray-300'}`} onClick={() => setSelectedResolver(resolver)}>
-                  <h5 className="text-lg font-semibold">{resolver.name}</h5>
-                  <p className="text-sm text-gray-600">Occupation: {resolver.occupation}</p>
-                  <p className="text-sm text-gray-600">Phone: {resolver.phoneNumber}</p>
-                </Card>
-              ))}
+              {filteredResolvers &&
+                filteredResolvers.length > 0 &&
+                filteredResolvers.map((resolver) => (
+                  <Card
+                    key={resolver.id}
+                    className={`cursor-pointer border ${
+                      selectedResolver?.id === resolver.id
+                        ? "bg-sky-200"
+                        : "border-gray-300"
+                    }`}
+                    onClick={() => setSelectedResolver(resolver)}
+                  >
+                    <h5 className="text-lg font-semibold">{resolver.name}</h5>
+                    <p className="text-sm text-gray-600">
+                      Occupation: {resolver.occupation}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Phone: {resolver.phoneNumber}
+                    </p>
+                  </Card>
+                ))}
             </div>
           </Modal.Body>
           <Modal.Footer>
@@ -254,7 +358,11 @@ function InchargeManageComplaints() {
             >
               Delegate
             </Button>
-            <Button color="gray" onClick={handleCloseModal} className="hover: text-[rgb(61,79,131)]">
+            <Button
+              color="gray"
+              onClick={handleCloseModal}
+              className="hover: text-[rgb(61,79,131)]"
+            >
               Cancel
             </Button>
           </Modal.Footer>
