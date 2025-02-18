@@ -1,112 +1,162 @@
-import React, { useEffect, useState } from 'react'
-import AdminSidebar from '../components/AdminSidebar'
-import { Alert, Button, Modal, Spinner, Table, TextInput, Toast } from 'flowbite-react';
-import { GrCircleAlert } from 'react-icons/gr';
-import { HiCheck } from 'react-icons/hi';
-import { customThemeTi } from '../utils/flowbiteCustomThemes';
+import React, { useEffect, useState } from "react";
+import AdminSidebar from "../components/AdminSidebar";
+import {
+  Alert,
+  Button,
+  Card,
+  Dropdown,
+  Label,
+  Modal,
+  Select,
+  Spinner,
+  Table,
+  TextInput,
+  Toast,
+} from "flowbite-react";
+import { GrCircleAlert } from "react-icons/gr";
+import { HiCheck } from "react-icons/hi";
+import { RxHamburgerMenu } from "react-icons/rx";
+import {
+  customThemeDropdown,
+  customThemeSelect,
+  customThemeTi,
+} from "../utils/flowbiteCustomThemes";
+import { useNavigate } from "react-router-dom";
+import { FaRegTrashAlt } from "react-icons/fa";
 
 function ManageLocations() {
   const [locations, setLocations] = useState([]);
-  const [error, setError] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [locationToDelete, setLocationToDelete] = useState(null);
+  const [tags, setTags] = useState<any>([]);
   const [loading, setLoading] = useState(false);
-  const [newLocation, setNewLocation] = useState({location:"", locationName:"", locationBlock:""});
-  const [toastMessage, setToastMessage] = useState<string|null>(null);
-  const showError = (message: string) => {
-    setError(message);
-    setTimeout(() => {
-      setError(null);
-    }, 3000); // Disappear after 3 seconds
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState(null);
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [newLocation, setNewLocation] = useState({
+    tagId: 0,
+    locationCategory: "",
+    locationName: "",
+    locationBlock: "",
+  });
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/v1/admin/get/locations");
-        if (!res.ok) {
-          showError("Failed to fetch locations");
-        }
-        const data = await res.json();
-        setLocations(data.locations);
-      } catch (error) {
-        showError("An error occurred while fetching tags. ");
-      } finally{
-        setLoading(false);
-      }
-    };
     fetchTags();
+    fetchLocations();
   }, []);
 
-  const handleAddLocation = async()=>{
-    if (!newLocation.location.trim()) {
-      showError("Location field is required.");
-      return;
-    }
-
-    const isDuplicate = locations.some(
-      (loc) =>
-        loc.location.toLowerCase() === newLocation.location.trim().toLowerCase() &&
-        loc.locationName?.toLowerCase() === newLocation.locationName.trim().toLowerCase() &&
-        loc.locationBlock?.toLowerCase() === newLocation.locationBlock.trim().toLowerCase()
-    );
-    if (isDuplicate) {
-      showError("This location already exists.")
-      return;
-    }
-
+  const fetchLocations = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/admin/create/locations',{
-        method: 'POST',
-        headers:{
-          'Content-Type': 'application/json'
+      const res = await fetch("/api/v1/admin/get/locations");
+      const data = await res.json();
+      if (data.ok) {
+        const formattedLocations = data.locations.map((loc) => {
+          const [category, name, block] = loc.locationName.split("-");
+          return { ...loc, category, name, block };
+        });
+        setLocations(formattedLocations);
+      }
+    } catch (error) {
+      setError("Failed to fetch locations");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTags = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/get/tags");
+      const data = await res.json();
+      if (data.ok) {
+        setTags(data.tags);
+      }
+    } catch (error) {
+      setError("cannot fetch tags");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddLocation = async () => {
+    const locationNameToSend = `${newLocation.locationCategory}${
+      newLocation.locationName ? `-${newLocation.locationName}` : ""
+    }${newLocation.locationBlock ? `-${newLocation.locationBlock}` : ""}`;
+    const dataToSend = {
+      tagId: Number(newLocation.tagId),
+      locationName: locationNameToSend,
+    };
+    console.log(dataToSend);
+    setSubmitting(true);
+
+    try {
+      const res = await fetch("/api/v1/admin/set/location", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({locations: [newLocation]})
+        body: JSON.stringify(dataToSend),
       });
       const data = await res.json();
-      if(data.ok){
-        setLocations([...locations, {...newLocation}]);
-        setNewLocation({ location: "", locationName: "", locationBlock: "" });
-        setToastMessage("Location added successfully!");
-      }else{
-        setError(data.error);
+      if (data.ok) {
+        setNewLocation({
+          tagId: 0,
+          locationCategory: "",
+          locationName: "",
+          locationBlock: "",
+        });
+        setShowAddLocationModal(false);
+        const newLocation = data.location;
+        const formattedLocation = {
+          ...newLocation,
+          category: newLocation.locationName.split("-")[0],
+          name: newLocation.locationName.split("-")[1],
+          block: newLocation.locationName.split("-")[2],
+        };
+        setLocations([...locations, formattedLocation]);
+        setToastMessage("New Location added successfully :)");
+      } else {
+        console.error("Error:", data.error);
       }
     } catch (error) {
-      showError("An error occurred while adding location.");
-    }finally{
-      setLoading(false);
+      console.error(error);
+    } finally {
+      setSubmitting(false);
     }
-  }
+  };
 
-  const handleDeleteLocation = async()=>{
-    if (locationToDelete === null) return;
-    setLoading(true);
-
+  const handleDeleteLocation = async () => {
+    const dataToSend = { locations: [locationToDelete] };
     try {
-      const res = await fetch('/api/v1/admin/remove/locations',{
-        method: 'DELETE',
-        headers:{
-          'Content-Type': 'application/json',
+      const res = await fetch("/api/v1/admin/remove/locations", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({locations: [locationToDelete]})
-      })
+        body: JSON.stringify(dataToSend),
+      });
       const data = await res.json();
-      console.log(data);
-      if(data.ok){
-        setLocations(locations.filter((loc)=> loc !== locationToDelete));
-        setToastMessage("Location deleted successfully!");
-      }else{
-        showError(data.error);
+      if (data.ok) {
+        setShowModal(false);
+        setLocations(
+          locations.filter((location) => location.id !== locationToDelete)
+        );
+        setToastMessage("Location deleted successfully :)");
+        setLocationToDelete(null);
+      } else {
+        setError(data.error || "Failed to delete location.");
       }
     } catch (error) {
-      showError("An error occurred while deleting the location.");
-    }finally{
-      setLoading(false);
-      setShowModal(false);
-      setLocationToDelete(null);
+      console.error("Error deleting location:", error);
+      setError("An error occurred while deleting the location.");
     }
-  }
+  };
+
+
+  //TODO: Handle view complaints, view locations, view resolvers at a location
   return (
     <div className="flex flex-col md:flex-row">
       {/* Sidebar */}
@@ -144,91 +194,183 @@ function ManageLocations() {
 
         {loading && (
           <div className="flex justify-center items-center mb-4">
-            <Spinner size="xl" aria-label="Loading..." />
+            <Spinner
+              size="xl"
+              aria-label="Loading..."
+              className="fill-[rgb(60,79,131)]"
+            />
           </div>
         )}
 
-        {/* Main Content */}
-        <div className="p-6">
-          <h1 className="text-2xl font-bold mb-4">Manage Locations</h1>
-          <div className="mb-6 flex gap-4 items-center">
-            <TextInput
-              id="location"
-              placeholder="Enter location"
-              value={newLocation.location}
-              theme={customThemeTi}
-              onChange={(e) => setNewLocation({ ...newLocation, location: e.target.value })}
-            />
-            <TextInput
-              id="locationName"
-              placeholder="Enter location name (optional)"
-              value={newLocation.locationName}
-              theme={customThemeTi}
-              onChange={(e) => setNewLocation({ ...newLocation, locationName: e.target.value })}
-            />
-            <TextInput
-              id="locationBlock"
-              placeholder="Enter location block (optional)"
-              value={newLocation.locationBlock}
-              theme={customThemeTi}
-              onChange={(e) => setNewLocation({ ...newLocation, locationBlock: e.target.value })}
-            />
-            <Button
-              onClick={handleAddLocation}
-              disabled={loading || !newLocation.location.trim()}
-              gradientDuoTone="purpleToBlue"
-            >
-              Add Location
-            </Button>
-          </div>
-          <Table hoverable className="w-full">
-            <Table.Head>
-              <Table.HeadCell>Location</Table.HeadCell>
-              <Table.HeadCell>Location Name</Table.HeadCell>
-              <Table.HeadCell>Location Block</Table.HeadCell>
-              <Table.HeadCell>Actions</Table.HeadCell>
-            </Table.Head>
-            <Table.Body>
-              {locations && locations.length > 0 && locations.map((loc) => (
-                <Table.Row key={loc.id}>
-                  <Table.Cell>{loc.location}</Table.Cell>
-                  <Table.Cell>{loc.locationName || "-"}</Table.Cell>
-                  <Table.Cell>{loc.locationBlock || "-"}</Table.Cell>
-                  <Table.Cell>
+        {/* Header */}
+        <h1 className="text-2xl font-bold mb-4">Manage Locations</h1>
+
+        {/* Add new locations */}
+        <Button
+          gradientDuoTone="purpleToBlue"
+          onClick={() => setShowAddLocationModal(true)}
+          className="w-1/5 mb-8"
+        >
+          Add a new location
+        </Button>
+
+        {/* Location Cards */}
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-6 w-3/5 self-center">
+            {locations &&
+              locations.map((loc, index) => (
+                <Card
+                  key={index}
+                  className="flex justify-between gap-8 p-4 shadow-lg relative"
+                >
+                  <div className="flex-1">
+                    <h5 className="text-2xl font-bold text-gray-900">
+                      {loc.locationName}
+                    </h5>
+                    <p className="text-gray-700">
+                      Category: {loc.category || "-"}
+                    </p>
+                    <p className="text-gray-700">Name: {loc.name || "-"}</p>
+                    <p className="text-gray-700">Block: {loc.block || "-"}</p>
+                  </div>
+                  <div className="flex-1 absolute top-6 right-6">
+                    <Dropdown
+                      label={<RxHamburgerMenu size={18} />}
+                      theme={customThemeDropdown}
+                      arrowIcon={false}
+                    >
+                      <Dropdown.Item
+                        // onClick={() => handleView("incharges", loc.id)}
+                      >
+                        View Incharges
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        // onClick={() => handleView("resolvers", loc.id)}
+                      >
+                        View Resolvers
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        // onClick={() => handleView("complaints", loc.id)}
+                      >
+                        View Complaints
+                      </Dropdown.Item>
+                    </Dropdown>
+                  </div>
+                  <div className="flex-1 absolute bottom-6 right-6">
                     <Button
                       color="failure"
                       onClick={() => {
-                        setLocationToDelete(loc);
+                        setLocationToDelete(loc.id);
                         setShowModal(true);
                       }}
                     >
-                      Delete
+                      <FaRegTrashAlt />
                     </Button>
-                  </Table.Cell>
-                </Table.Row>
+                  </div>
+                </Card>
               ))}
-            </Table.Body>
-          </Table>
+          </div>
         </div>
-
-        {/* Modal */}
-        <Modal show={showModal} onClose={() => setShowModal(false)}>
-          <Modal.Header>Confirm Deletion</Modal.Header>
-          <Modal.Body>
-            <p>Are you sure you want to delete this location?</p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button color="failure" onClick={handleDeleteLocation}>
-              Delete
-            </Button>
-            <Button color="gray" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-          </Modal.Footer>
-        </Modal>
       </div>
+      {/* Add new location modal */}
+      <Modal
+        show={showAddLocationModal}
+        onClose={() => {
+          setShowAddLocationModal(false);
+          setNewLocation({
+            tagId: 0,
+            locationCategory: "",
+            locationName: "",
+            locationBlock: "",
+          });
+        }}
+      >
+        <Modal.Header>Add a new location</Modal.Header>
+        <Modal.Body>
+          <Label>Tag</Label>
+          <Select
+            value={newLocation.tagId}
+            onChange={(e) =>
+              setNewLocation({ ...newLocation, tagId: e.target.value })
+            }
+            theme={customThemeSelect}
+          >
+            <option value="">Select a Tag</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.tagName}
+              </option>
+            ))}
+          </Select>
+          <Label>Location Category</Label>
+          <TextInput
+            value={newLocation.locationCategory}
+            onChange={(e) =>
+              setNewLocation({
+                ...newLocation,
+                locationCategory: e.target.value,
+              })
+            }
+            placeholder="Location category"
+            theme={customThemeTi}
+          />
+          <Label>Location Name</Label>
+          <TextInput
+            value={newLocation.locationName}
+            onChange={(e) =>
+              setNewLocation({ ...newLocation, locationName: e.target.value })
+            }
+            placeholder="Location name"
+            theme={customThemeTi}
+          />
+          <Label>Location Block</Label>
+          <TextInput
+            value={newLocation.locationBlock}
+            onChange={(e) =>
+              setNewLocation({ ...newLocation, locationBlock: e.target.value })
+            }
+            placeholder="Location block"
+            theme={customThemeTi}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            onClick={handleAddLocation}
+            gradientDuoTone="purpleToBlue"
+            outline
+            disabled={submitting}
+          >
+            Add
+          </Button>
+          <Button color="gray" onClick={() => setShowAddLocationModal(false)}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal
+        show={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setLocationToDelete(null);
+        }}
+      >
+        <Modal.Header>Confirm Deletion</Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete this location?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button color="failure" onClick={handleDeleteLocation}>
+            Delete
+          </Button>
+          <Button color="gray" onClick={() => setShowModal(false)}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
 
-export default ManageLocations
+export default ManageLocations;
