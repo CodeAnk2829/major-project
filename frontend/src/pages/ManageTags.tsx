@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import {
   Alert,
+  Badge,
   Button,
   Modal,
   Spinner,
@@ -31,6 +32,10 @@ function ManageTags() {
   const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddTagInput, setShowAddTagInput] = useState(false);
+  const [tagDetails, setTagDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const showError = (message: string) => {
     setError(message);
     setTimeout(() => {
@@ -56,6 +61,24 @@ function ManageTags() {
     };
     fetchTags();
   }, []);
+
+  const fetchTagDetails = async (tagId) => {
+    setLoadingDetails(true);
+    try {
+      const res = await fetch(`/api/v1/admin/get/tag-details/${tagId}`);
+      const data = await res.json();
+      console.log(data);
+      if (data.ok) {
+        setTagDetails(data);
+      } else {
+        console.error("Failed to fetch tag details:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching tag details:", error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   const handleAddTag = async () => {
     if (!newTag.trim()) {
@@ -176,11 +199,14 @@ function ManageTags() {
             />
             <div className="mb-6 flex gap-4 items-center p-4">
               <motion.div animate={{ rotate: showAddTagInput ? 180 : 0 }}>
-                <Button onClick={() => setShowAddTagInput(!showAddTagInput)} gradientMonochrome="purple">
+                <Button
+                  onClick={() => setShowAddTagInput(!showAddTagInput)}
+                  gradientMonochrome="purple"
+                >
                   {showAddTagInput ? (
-                    <IoMdClose size={20}/>
+                    <IoMdClose size={20} />
                   ) : (
-                    <BsPlus size={20}/>
+                    <BsPlus size={20} />
                   )}
                 </Button>
               </motion.div>
@@ -217,7 +243,7 @@ function ManageTags() {
                     tags.map((tag) => (
                       <Table.Row key={tag.id}>
                         <Table.Cell>{tag.tagName}</Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell className="flex flex-row gap-4 self-center justify-start">
                           <Button
                             color="failure"
                             onClick={() => {
@@ -227,6 +253,15 @@ function ManageTags() {
                             disabled={loading}
                           >
                             Delete
+                          </Button>
+                          <Button
+                            className="bg-[rgb(60,79,131)]"
+                            onClick={() => {
+                              fetchTagDetails(tag.id);
+                              setShowDetailsModal(true);
+                            }}
+                          >
+                            View Details
                           </Button>
                         </Table.Cell>
                       </Table.Row>
@@ -290,6 +325,45 @@ function ManageTags() {
               Cancel
             </Button>
           </Modal.Footer>
+        </Modal>
+
+        <Modal
+          show={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setTagDetails(null);
+          }}
+          size="2xl"
+        >
+          <Modal.Header>Tag Details</Modal.Header>
+          <Modal.Body>
+            {loadingDetails ? (
+              <Spinner size="lg" className="fill-[rgb(60,79,131)]"/>
+            ) : tagDetails ? (
+              <>
+                <h3 className="font-semibold">Locations:</h3>
+                <div className="flex flex-row gap-3">
+                  {tagDetails.locationDetails && tagDetails.locationDetails.length > 0 ? tagDetails.locationDetails.map((loc) => (
+                    <Badge key={loc.id} color="warning">{loc.locationName}</Badge>
+                  )) : (<Badge color="warning">N/A</Badge>)}
+                </div>
+                <h3 className="font-semibold mt-2">Designations:</h3>
+                <div className="flex flex-row gap-3">
+                  {tagDetails.designationDetails && tagDetails.designationDetails.length > 0 ? tagDetails.designationDetails.map((des) => (
+                    <Badge key={des.id}>{des.designation}</Badge>
+                  )) : (<Badge>N/A</Badge>)}
+                </div>
+                <h3 className="font-semibold mt-2">Occupations:</h3>
+                <div className="flex flex-row gap-3">
+                  {tagDetails.occupationDetails && tagDetails.occupationDetails.length > 0 ? tagDetails.occupationDetails.map((occ) => (
+                    <Badge key={occ.id} color="purple">{occ.occupation}</Badge>
+                  )) : (<Badge color="purple" >N/A</Badge>)}
+                </div>
+              </>
+            ) : (
+              <p>No details available.</p>
+            )}
+          </Modal.Body>
         </Modal>
       </div>
     </div>
