@@ -12,7 +12,15 @@ import {
 import { HiCheck } from "react-icons/hi";
 import { GrCircleAlert } from "react-icons/gr";
 import { customThemeTi } from "../utils/flowbiteCustomThemes";
+import { IoSearch } from "react-icons/io5";
+import { BsPlus } from "react-icons/bs";
+import { motion } from "framer-motion";
+import { IoMdClose } from "react-icons/io";
 
+type Tag = {
+  id: number;
+  tagName: string;
+};
 function ManageTags() {
   const [tags, setTags] = useState([]);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +28,9 @@ function ManageTags() {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+  const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddTagInput, setShowAddTagInput] = useState(false);
   const showError = (message: string) => {
     setError(message);
     setTimeout(() => {
@@ -30,6 +40,7 @@ function ManageTags() {
 
   useEffect(() => {
     const fetchTags = async () => {
+      setLoading(true);
       try {
         const res = await fetch("/api/v1/admin/get/tags");
         if (!res.ok) {
@@ -37,9 +48,10 @@ function ManageTags() {
         }
         const data = await res.json();
         setTags(data.tags);
-        console.log(tags);
       } catch (error) {
         showError("An error occurred while fetching tags. ", error.message);
+      } finally {
+        setLoading(false);
       }
     };
     fetchTags();
@@ -51,7 +63,11 @@ function ManageTags() {
       return;
     }
 
-    if (tags.some((tag) => tag.tagName.toLowerCase() === newTag.trim().toLowerCase())) {
+    if (
+      tags.some(
+        (tag) => tag.tagName.toLowerCase() === newTag.trim().toLowerCase()
+      )
+    ) {
       showError("Tag already exists.");
       return;
     }
@@ -73,7 +89,7 @@ function ManageTags() {
           setTags(updatedData.tags); // Update state with the full tag list
           setNewTag("");
           setToastMessage("Tag added successfully!");
-        }else{
+        } else {
           showError("Failed to add the tag");
         }
       }
@@ -84,22 +100,23 @@ function ManageTags() {
     }
   };
 
-  const handleDeleteTag = async (tagName: string) => {
-    setLoading(true); 
+  const handleDeleteTag = async (tagToDelete) => {
+    console.log("tag to delete is : ", tagToDelete);
+    setLoading(true);
     try {
       const res = await fetch("/api/v1/admin/remove/tags", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tags: [tagName] }), // Send tag name(s) as an array
+        body: JSON.stringify({ tags: [tagToDelete] }), // Send tag name(s) as an array
       });
-  
+
       const data = await res.json();
       console.log("ON tag delete: ", data);
       if (data.ok) {
         // Remove the deleted tag from the state
-        setTags(tags.filter((tag) => tag.tagName !== tagName));
+        setTags(tags.filter((tag) => tag.id !== tagToDelete));
         setToastMessage("Tag deleted successfully!");
-        setShowModal(false); 
+        setShowModal(false);
       } else {
         showError(data.error || "Failed to delete the tag.");
       }
@@ -109,7 +126,6 @@ function ManageTags() {
       setLoading(false); // Stop loading spinner
     }
   };
-  
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -138,73 +154,133 @@ function ManageTags() {
             </Toast>
           </div>
         )}
-        <div className="p-6">
-          <h1 className="text-2xl font-bold mb-4">Manage Tags</h1>
-          {error && (
-            <Alert color="failure" icon={GrCircleAlert}>
-              <span className="font-medium">{error}</span>
-            </Alert>
-          )}
-          <div className="mb-6 flex gap-4 items-center p-4">
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
+          </div>
+        ) : (
+          <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Manage Tags</h1>
+            {error && (
+              <Alert color="failure" icon={GrCircleAlert}>
+                <span className="font-medium">{error}</span>
+              </Alert>
+            )}
             <TextInput
-              id="new-tag"
-              type="text"
-              placeholder="Enter new tag"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tags"
+              rightIcon={IoSearch}
               theme={customThemeTi}
+              className="w-1/5 p-4"
             />
-            <Button
-              onClick={handleAddTag}
-              disabled={loading || !newTag.trim()}
-              gradientDuoTone="purpleToBlue"
-            >
-              Add Tag
-            </Button>
+            <div className="mb-6 flex gap-4 items-center p-4">
+              <motion.div animate={{ rotate: showAddTagInput ? 180 : 0 }}>
+                <Button onClick={() => setShowAddTagInput(!showAddTagInput)} gradientMonochrome="purple">
+                  {showAddTagInput ? (
+                    <IoMdClose size={20}/>
+                  ) : (
+                    <BsPlus size={20}/>
+                  )}
+                </Button>
+              </motion.div>
+              {showAddTagInput && (
+                <>
+                  <TextInput
+                    id="new-tag"
+                    type="text"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Enter new tag"
+                    theme={customThemeTi}
+                  />
+                  <Button
+                    onClick={handleAddTag}
+                    disabled={loading || !newTag.trim()}
+                    gradientDuoTone="purpleToBlue"
+                  >
+                    Add Tag
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="">
+              <Table hoverable className="w-1/2">
+                <Table.Head>
+                  <Table.HeadCell>Tag Name</Table.HeadCell>
+                  <Table.HeadCell>Actions</Table.HeadCell>
+                </Table.Head>
+                <Table.Body>
+                  {tags &&
+                    searchQuery === "" &&
+                    tags.length > 0 &&
+                    tags.map((tag) => (
+                      <Table.Row key={tag.id}>
+                        <Table.Cell>{tag.tagName}</Table.Cell>
+                        <Table.Cell>
+                          <Button
+                            color="failure"
+                            onClick={() => {
+                              setTagToDelete(tag);
+                              setShowModal(true);
+                            }}
+                            disabled={loading}
+                          >
+                            Delete
+                          </Button>
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  {tags &&
+                  searchQuery !== "" &&
+                  tags.filter((tag) =>
+                    tag.tagName
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    tags
+                      .filter((tag) =>
+                        tag.tagName
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      )
+                      .map((tag) => (
+                        <Table.Row key={tag.id}>
+                          <Table.Cell>{tag.tagName}</Table.Cell>
+                          <Table.Cell>
+                            <Button
+                              color="failure"
+                              onClick={() => {
+                                setTagToDelete(tag.id);
+                                setShowModal(true);
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))
+                  ) : (
+                    <div className="p-4">No such tags found</div>
+                  )}
+                </Table.Body>
+              </Table>
+            </div>
           </div>
-          <div className="">
-            <Table hoverable className="w-1/2">
-              <Table.Head>
-                <Table.HeadCell>Tag Name</Table.HeadCell>
-                <Table.HeadCell>Actions</Table.HeadCell>
-              </Table.Head>
-              <Table.Body>
-                {tags &&
-                  tags.length > 0 &&
-                  tags.map((tag) => (
-                    <Table.Row key={tag.id}>
-                      <Table.Cell>{tag.tagName}</Table.Cell>
-                      <Table.Cell>
-                        <Button
-                          color="failure"
-                          onClick={() => {
-                            setTagToDelete(tag.tagName);
-                            setShowModal(true);
-                          }}
-                          disabled={loading}
-                        >
-                          Delete
-                        </Button>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
-              </Table.Body>
-            </Table>
-          </div>
-        </div>
+        )}
         {/* Modal */}
         <Modal show={showModal} onClose={() => setShowModal(false)}>
           <Modal.Header>Confirm Deletion</Modal.Header>
           <Modal.Body>
             <p>
               Are you sure you want to delete the tag{" "}
-              <strong>{tagToDelete}</strong>?
+              <strong>{tagToDelete && tagToDelete.tagName}</strong>?
             </p>
           </Modal.Body>
           <Modal.Footer>
             <Button
               onClick={() => {
-                if (tagToDelete) handleDeleteTag(tagToDelete);
+                if (tagToDelete) handleDeleteTag(tagToDelete.id);
               }}
               color="failure"
             >
