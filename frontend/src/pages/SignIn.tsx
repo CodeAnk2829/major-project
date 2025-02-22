@@ -47,7 +47,11 @@ function SignIn() {
       localStorage.setItem("token", data.token);
 
       if (data.ok === false) {
-        dispatch(signInFailure(data.error));
+        if (data.error && data.error.includes("prisma.user.findUnique")) {
+          return dispatch(signInFailure("Unauthorized: You cannot log in as this role"));
+        }
+        
+        return dispatch(signInFailure(data.error || "Sign-in failed"));
       }
       if (res.ok) {
         dispatch(signInSuccess(data));
