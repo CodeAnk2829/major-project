@@ -10,16 +10,19 @@ import {
 } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { AiOutlineNotification } from "react-icons/ai";
-import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
+import {
+  customThemeSelect,
+  customThemeTi,
+} from "../utils/flowbiteCustomThemes";
+import AssignInchargeModal from "./AssignInchargeModal";
+import { IoSearch } from "react-icons/io5";
 
 function ManageIssueIncharge() {
   const [incharges, setIncharges] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [addError, setAddError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newIncharge, setNewIncharge] = useState({ role: "ISSUE_INCHARGE" });
   const [locations, setLocations] = useState([]);
   const [selectedIncharge, setSelectedIncharge] = useState(null);
   const [updatedIncharge, setUpdatedIncharge] = useState({});
@@ -27,6 +30,7 @@ function ManageIssueIncharge() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [inchargeToDelete, setInchargeToDelete] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const showError = (message: string) => {
     setError(message);
@@ -36,91 +40,37 @@ function ManageIssueIncharge() {
   };
 
   useEffect(() => {
-    const fetchIncharges = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/v1/admin/get/incharges");
-        const data = await res.json();
-        if (data.ok) {
-          setIncharges(data.incharges);
-        }
-      } catch (error) {
-        showError("Cannot fetch incharges: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchLocations = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/v1/admin/get/locations");
-        const data = await res.json();
-        if (data.ok) {
-          setLocations(data.locations);
-        } else {
-          console.error("Failed to fetch locations: ", data.error);
-        }
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchIncharges();
     fetchLocations();
   }, []);
 
-  const handleAddIncharge = async () => {
-    console.log(newIncharge);
-    if (
-      !newIncharge.name ||
-      !newIncharge.phoneNumber ||
-      !newIncharge.email ||
-      !newIncharge.location ||
-      !newIncharge.password ||
-      !newIncharge.designation ||
-      !newIncharge.rank
-    ) {
-      setAddError("All fields are mandatory");
-    }
-
-    if (newIncharge.name.length < 3) {
-      setAddError("The name should be atleast 3 characters.");
-    }
-
-    if (newIncharge.password.length < 6) {
-      setAddError("Passwords must be atleast 6 characters.");
-    }
-
-    if (newIncharge.designation.length < 3) {
-      setAddError("Designation must be atleast 3 characters.");
-    }
-
-    if (newIncharge.location.length < 3) {
-      setAddError("Location must be atleast 3 characters. Invalid Location");
-    }
-
+  const fetchIncharges = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/admin/assign/incharge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newIncharge),
-      });
+      const res = await fetch("/api/v1/admin/get/incharges");
       const data = await res.json();
       if (data.ok) {
-        setToastMessage("Incharge added successfully!");
-        setIncharges((prev) => [...prev, { ...data }]);
-        setNewIncharge({role:"ISSUE_INCHARGE"});
-        setShowAddModal(false);
-      } else {
-        setToastMessage(data.error || "Failed to add incharge.");
+        setIncharges(data.inchargeDetails);
       }
-    } catch (err) {
-      console.error("Failed to add incharge:", err);
-      setToastMessage("An error occurred.");
-      setAddError(err);
+    } catch (error) {
+      showError("Cannot fetch incharges: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLocations = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/get/locations");
+      const data = await res.json();
+      if (data.ok) {
+        setLocations(data.locations);
+      } else {
+        console.error("Failed to fetch locations: ", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error);
     } finally {
       setLoading(false);
     }
@@ -131,10 +81,11 @@ function ManageIssueIncharge() {
     try {
       const res = await fetch(`/api/v1/admin/get/incharge/${id}`);
       const data = await res.json();
-      const { ok, ...inchargeDetails } = data;
+      // const { ok, ...inchargeDetails } = data;
       if (data.ok) {
-        setSelectedIncharge(inchargeDetails);
-        setUpdatedIncharge(inchargeDetails);
+        setSelectedIncharge(data.inchargeDetails);
+        console.log(data.inchargeDetails);
+        setUpdatedIncharge(data.inchargeDetails);
       }
     } catch (error) {
       console.error("Failed to fetch incharge details: ", error);
@@ -152,9 +103,7 @@ function ManageIssueIncharge() {
       });
       const data = await res.json();
       if (data.ok) {
-        setIncharges(
-          incharges.filter((inc) => inc.inchargeId !== inchargeToDelete)
-        );
+        setIncharges(incharges.filter((inc) => inc.id !== inchargeToDelete));
         setToastMessage("User deleted successfully!");
         setShowDeleteModal(false);
       }
@@ -170,9 +119,9 @@ function ManageIssueIncharge() {
     console.log(updatedIncharge);
     setLoading(true);
     try {
-      const { inchargeId, createdAt, ...dataToSend } = updatedIncharge;
+      const { id, createdAt, ...dataToSend } = updatedIncharge;
       const res = await fetch(
-        `/api/v1/admin/update/incharge/${updatedIncharge.inchargeId}`,
+        `/api/v1/admin/update/incharge/${updatedIncharge.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -201,8 +150,22 @@ function ManageIssueIncharge() {
     }
   };
 
+  const filteredIncharges = incharges.filter((incharge) =>
+    `${incharge.name} ${incharge.email} ${incharge.phoneNumber}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div>
+      <TextInput
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search by name, email, or phone"
+        rightIcon={IoSearch}
+        className="w-1/3 mt-2 mb-4"
+        theme={customThemeTi}
+      />
       {/* Add Button */}
       <Button
         gradientDuoTone="purpleToBlue"
@@ -248,163 +211,64 @@ function ManageIssueIncharge() {
         </Table.Head>
 
         <Table.Body>
-          {incharges.map((incharge) => (
-            <Table.Row key={incharge.inchargeId}>
-              <Table.Cell>
-                <Button
-                  color="link"
-                  onClick={() => {
-                    fetchInchargeDetails(incharge.inchargeId);
-                    setShowDetailsModal(true);
-                  }}
-                >
-                  {incharge.name}
-                </Button>
-              </Table.Cell>
-              <Table.Cell>{incharge.email}</Table.Cell>
-              <Table.Cell>{incharge.phoneNumber}</Table.Cell>
-              <Table.Cell>{incharge.location}</Table.Cell>
-              <Table.Cell>{incharge.designation}</Table.Cell>
-              <Table.Cell>{incharge.rank}</Table.Cell>
-              <Table.Cell className="flex flex-row gap-4">
-                <Button
-                  color="warning"
-                  onClick={() => {
-                    fetchInchargeDetails(incharge.inchargeId);
-                    setShowUpdateModal(true);
-                  }}
-                >
-                  Update
-                </Button>
-                <Button
-                  color="failure"
-                   onClick={() => {
-                    setInchargeToDelete(incharge.inchargeId);
-                    setShowDeleteModal(true);
-                   }}
-                >
-                  Delete
-                </Button>
+          {filteredIncharges.length > 0 ? (
+            filteredIncharges.map((incharge) => (
+              <Table.Row key={incharge.id}>
+                <Table.Cell>
+                  <Button
+                    color="link"
+                    onClick={() => {
+                      fetchInchargeDetails(incharge.id);
+                      setShowDetailsModal(true);
+                    }}
+                  >
+                    {incharge.name}
+                  </Button>
+                </Table.Cell>
+                <Table.Cell>{incharge.email}</Table.Cell>
+                <Table.Cell>{incharge.phoneNumber}</Table.Cell>
+                <Table.Cell>{incharge.location}</Table.Cell>
+                <Table.Cell>{incharge.designation}</Table.Cell>
+                <Table.Cell>{incharge.rank}</Table.Cell>
+                <Table.Cell className="flex flex-row gap-4">
+                  <Button
+                    color="warning"
+                    onClick={() => {
+                      fetchInchargeDetails(incharge.id);
+                      setShowUpdateModal(true);
+                    }}
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    color="failure"
+                    onClick={() => {
+                      setInchargeToDelete(incharge.id);
+                      setShowDeleteModal(true);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Table.Cell>
+              </Table.Row>
+            ))
+          ) : (
+            <Table.Row>
+              <Table.Cell colSpan="4" className="text-center">
+                No incharges found.
               </Table.Cell>
             </Table.Row>
-          ))}
+          )}
         </Table.Body>
       </Table>
 
       {/* Add Incharge Modal */}
-      <Modal
-        show={showAddModal}
-        onClose={() => {
-          setNewIncharge({ role: "ISSUE_INCHARGE" });
-          setShowAddModal(false);
-        }}
-        size="5xl"
-      >
-        <Modal.Header>Add New Incharge</Modal.Header>
-        <Modal.Body className="flex flex-col gap-2">
-          <TextInput
-            placeholder="Name"
-            value={newIncharge.name || ""}
-            onChange={(e) =>
-              setNewIncharge({ ...newIncharge, name: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-          <TextInput
-            placeholder="Email"
-            value={newIncharge.email || ""}
-            onChange={(e) =>
-              setNewIncharge({ ...newIncharge, email: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-          <TextInput
-            placeholder="Phone Number"
-            value={newIncharge.phoneNumber || ""}
-            onChange={(e) =>
-              setNewIncharge({ ...newIncharge, phoneNumber: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-
-          <TextInput
-            placeholder="Password"
-            type="password"
-            value={newIncharge.password || ""}
-            onChange={(e) =>
-              setNewIncharge({ ...newIncharge, password: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-
-          <Select
-            theme={customThemeSelect}
-            onChange={(e) =>
-              setNewIncharge({
-                ...newIncharge,
-                location: e.target.value,
-              })
-            }
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select Location
-            </option>
-            {locations.map((loc) => (
-              <option
-                key={loc.id}
-                value={`${loc.location}${
-                  loc.locationName ? `-${loc.locationName}` : ""
-                }${loc.locationBlock ? `-${loc.locationBlock}` : ""}`}
-              >
-                {loc.location}
-                {loc.locationName ? `-${loc.locationName}` : ""}
-                {""}
-                {loc.locationBlock ? `-${loc.locationBlock}` : ""}
-              </option>
-            ))}
-          </Select>
-
-          <TextInput
-            placeholder="Designation"
-            value={newIncharge.designation || ""}
-            onChange={(e) =>
-              setNewIncharge({ ...newIncharge, designation: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-          <TextInput
-            placeholder="Rank"
-            type="number"
-            value={newIncharge.rank || ""}
-            onChange={(e) =>
-              setNewIncharge({
-                ...newIncharge,
-                rank: parseInt(e.target.value, 10),
-              })
-            }
-            theme={customThemeTi}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            onClick={handleAddIncharge}
-            className="bg-[rgb(60,79,131)] hover:bg-[rgb(60,79,151)]"
-          >
-            Add
-          </Button>
-          <Button
-            color="gray"
-            onClick={() => {
-              setNewIncharge({ role: "ISSUE_INCHARGE" });
-              setShowAddModal(false);
-            }}
-          >
-            Cancel
-          </Button>
-        </Modal.Footer>
-        {addError && <Alert color="failure">{addError}</Alert>}
-      </Modal>
+      <AssignInchargeModal
+        showModal={showAddModal}
+        setShowModal={setShowAddModal}
+        refreshIncharges={fetchIncharges}
+        setToastMessage={setToastMessage}
+      />
 
       {/* Show Details Modal */}
       <Modal show={showDetailsModal} onClose={() => setShowDetailsModal(false)}>
@@ -453,7 +317,7 @@ function ManageIssueIncharge() {
         </Modal.Footer>
       </Modal>
 
-      {/* Update Details Modal */}
+      {/* TODO: Update Details Modal (update as per new UI --> need tagid) */}
       <Modal
         show={showUpdateModal}
         size="3xl"
@@ -467,6 +331,7 @@ function ManageIssueIncharge() {
             onChange={(e) =>
               setUpdatedIncharge({ ...updatedIncharge, name: e.target.value })
             }
+            theme={customThemeTi}
           />
           <TextInput
             placeholder="Email"
@@ -477,6 +342,7 @@ function ManageIssueIncharge() {
                 email: e.target.value,
               })
             }
+            theme={customThemeTi}
           />
           <TextInput
             placeholder="Phone Number"
@@ -487,6 +353,7 @@ function ManageIssueIncharge() {
                 phoneNumber: e.target.value,
               })
             }
+            theme={customThemeTi}
           />
           <Select
             theme={customThemeSelect}
@@ -527,6 +394,7 @@ function ManageIssueIncharge() {
                 designation: e.target.value,
               })
             }
+            theme={customThemeTi}
           />
           <TextInput
             placeholder="Rank"
@@ -538,6 +406,7 @@ function ManageIssueIncharge() {
                 rank: parseInt(e.target.value, 10),
               })
             }
+            theme={customThemeTi}
           />
         </Modal.Body>
         <Modal.Footer>
@@ -548,13 +417,13 @@ function ManageIssueIncharge() {
         </Modal.Footer>
       </Modal>
 
-      {/* TODO Delete Issue Incharge Modal */} 
+      {/* TODO: API endpoint required Delete Issue Incharge Modal */}
       <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
         <Modal.Header>Confirm Deletion</Modal.Header>
         <Modal.Body>
           <p>
-            Are you sure you want to delete the issue incharge? This action cannot be
-            undone.
+            Are you sure you want to delete the issue incharge? This action
+            cannot be undone.
           </p>
         </Modal.Body>
         <Modal.Footer>
