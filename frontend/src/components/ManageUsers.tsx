@@ -91,7 +91,7 @@ function ManageUsers() {
                 <Table.Cell>{user.email}</Table.Cell>
                 <Table.Cell>{user.phoneNumber}</Table.Cell>
                 <Table.Cell>{user.role}</Table.Cell>
-                <Table.Cell>
+                <Table.Cell className="flex flex-row gap-4">
                   {user.role !== "ADMIN" && (
                     <Button
                       color="failure"
