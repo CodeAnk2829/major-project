@@ -9,7 +9,9 @@ function PrivateRoute() {
     return <Navigate to="/incharge/complaints" replace />;
   }
 
-  //TODO: add navigation for admin
+  if (currentUser && currentUser.role === "ADMIN") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return currentUser.role === "STUDENT" || currentUser.role === "FACULTY" ? <Outlet /> : <Navigate to="sign-in" />;
 }
