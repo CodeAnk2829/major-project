@@ -11,6 +11,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signOutSuccess } from "../redux/user/userSlice";
+import { BsPersonLinesFill } from "react-icons/bs";
 
 const getInitials = (name: string) => {
   const nameParts = name.trim().split(" ");
@@ -69,6 +70,11 @@ const AdminSidebar = () => {
       icon: <HiLocationMarker className="text-2xl" />,
       path: "/admin/locations",
     },
+    {
+      label: "Manage Professions",
+      icon: <BsPersonLinesFill className="text-2xl"/>,
+      path: "/admin/professions",
+    }
   ];
 
   return (
