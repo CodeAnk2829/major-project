@@ -35,16 +35,75 @@ const Home = () => {
   const handleWebSocketUpdate = useCallback((message) => {
     switch (message.type) {
       case "CREATED":
-      case "UPDATED":
         setNewComplaintsAvailable(true);
         break;
-      case "RESOLVED":
+      case "DELETED":
+        setComplaints((prev) =>
+          prev.filter((c) => c.id !== message.data.complaintId)
+        );
+        setFilteredComplaints((prev) =>
+          prev.filter((c) => c.id !== message.data.complaintId)
+        );
+        break;
+      case "UPDATED":
+        console.log("Complaint updated:", message.data);
         setComplaints((prevComplaints) =>
-          prevComplaints.filter(
-            (complaint) => complaint.id !== message.data.complaintId
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  title: message.data.title,
+                  description: message.data.description,
+                  access: message.data.access,
+                  postAsAnonymous: message.data.postAsAnonymous,
+                  status: complaint.status, // Preserve existing status
+                  isAssignedTo: message.data.isAssignedTo,
+                  attachments: message.data.attachments || [],
+                  tags: message.data.tags.map((t) => t.tags.tagName) || [],
+                  updatedAt: message.data.updatedAt,
+                }
+              : complaint
+          )
+        );
+
+        setFilteredComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  title: message.data.title,
+                  description: message.data.description,
+                  access: message.data.access,
+                  postAsAnonymous: message.data.postAsAnonymous,
+                  status: complaint.status,
+                  isAssignedTo: message.data.isAssignedTo,
+                  attachments: message.data.attachments || [],
+                  tags: message.data.tags.map((t) => t.tags.tagName) || [],
+                  updatedAt: message.data.updatedAt,
+                }
+              : complaint
           )
         );
         break;
+        case "RESOLVED":
+          console.log("Complaint resolved:", message.data);
+          setComplaints((prevComplaints) =>
+              prevComplaints.map((complaint) =>
+                  complaint.id === message.data.complaintId
+                      ? {
+                            ...complaint,
+                            status: "RESOLVED", 
+                            resolver: {
+                                name: message.data.resolverDetails.name,
+                                email: message.data.resolverDetails.email,
+                                phoneNumber: message.data.resolverDetails.phoneNumber,
+                            },
+                            resolvedAt: message.data.resolverdAt || message.data.resolvedAt, //typo
+                        }
+                      : complaint
+              )
+          );
+          break;
       default:
         console.log("Unknown message type:", message.type);
     }
@@ -121,18 +180,23 @@ const Home = () => {
   };
 
   const fetchNewComplaints = async () => {
+    setLoading(true);
     try {
       const res = await fetch("/api/v1/complaint/get/all-complaints");
       if (!res.ok) {
         throw new Error("Failed to fetch new complaints.");
       }
       const data = await res.json();
-      setComplaints(data.complaintDetails);
+      setComplaints([...data.complaintDetails]);
+      setFilteredComplaints([...data.complaintDetails]);
       setNewComplaintsAvailable(false);
     } catch (error) {
       console.error("Error fetching new complaints:", error);
+    } finally {
+      setLoading(false);
     }
   };
+
   const handleSearch = (searchTerm: string) => {
     if (!searchTerm.trim()) {
       setFilteredComplaints(complaints);
@@ -140,12 +204,15 @@ const Home = () => {
     }
 
     const lowercasedTerm = searchTerm.toLowerCase();
-    const filtered = complaints.filter((complaint) =>
-      complaint.title?.toLowerCase().includes(lowercasedTerm) ||
-      complaint.description?.toLowerCase().includes(lowercasedTerm) ||
-      complaint.complainerName?.toLowerCase().includes(lowercasedTerm) ||
-      complaint.tags?.some(tag => tag.toLowerCase().includes(lowercasedTerm)) ||
-      complaint.location?.toLowerCase().includes(lowercasedTerm)
+    const filtered = complaints.filter(
+      (complaint) =>
+        complaint.title?.toLowerCase().includes(lowercasedTerm) ||
+        complaint.description?.toLowerCase().includes(lowercasedTerm) ||
+        complaint.complainerName?.toLowerCase().includes(lowercasedTerm) ||
+        complaint.tags?.some((tag) =>
+          tag.toLowerCase().includes(lowercasedTerm)
+        ) ||
+        complaint.location?.toLowerCase().includes(lowercasedTerm)
     );
 
     setFilteredComplaints(filtered);
@@ -226,7 +293,9 @@ const Home = () => {
           )}
           <Pagination
             currentPage={currentPage}
-            totalPages={Math.ceil(filteredComplaints.length / complaintsPerPage)}
+            totalPages={Math.ceil(
+              filteredComplaints.length / complaintsPerPage
+            )}
             onPageChange={onPageChange}
             className="mt-5 self-center"
             showIcons

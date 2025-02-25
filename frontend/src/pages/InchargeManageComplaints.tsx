@@ -142,7 +142,7 @@ function InchargeManageComplaints() {
       }
     } catch (error) {
       setToastMessage("An unexpected error occurred.");
-      console.error(error.message)
+      console.error(error.message);
     }
   };
 
@@ -199,36 +199,79 @@ function InchargeManageComplaints() {
     setFilteredResolvers(filtered); // Update the filteredResolvers state with the matching results
   };
 
-  //TODO: may need to change this based on backend web socket
   const handleWebSocketUpdate = useCallback((message) => {
+    if (!message || !message.type || !message.data) {
+      console.error("Invalid WebSocket message received:", message);
+      return;
+    }
+
     switch (message.type) {
       case "CREATED":
-        // Fetch the new complaint details
         setNewComplaintsAvailable(true);
+        //fetchNewComplaints();
         break;
 
       case "ESCALATED":
-        setComplaints((prevComplaints) => {
-          const filteredComplaints = prevComplaints.filter(
+        setComplaints((prevComplaints) =>
+          prevComplaints.filter(
             (complaint) => complaint.id !== message.data.complaintId
-          );
-          return filteredComplaints;
-        });
+          )
+        );
         setToastMessage("A complaint has been escalated");
         break;
 
       case "RESOLVED":
-        setComplaints((prevComplaints) => {
-          const filteredComplaints = prevComplaints.filter(
-            (complaint) => complaint.id !== message.data.complaintId
-          );
-          return filteredComplaints;
-        });
-        break;
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+              complaint.id === message.data.complaintId
+                  ? {
+                        ...complaint,
+                        status: "RESOLVED",
+                        resolver: {
+                            name: message.data.resolverDetails.name,
+                            email: message.data.resolverDetails.email,
+                            phoneNumber: message.data.resolverDetails.phoneNumber,
+                        },
+                        resolvedAt: message.data.resolverdAt || message.data.resolvedAt, //typo
+                    }
+                  : complaint
+          )
+      );
+      break;
 
       case "UPDATED":
-        //TODO: on complaint update like Whatsapp write updated/edited
-        fetchInchargeComplaints();
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  title: message.data.title,
+                  description: message.data.description,
+                  access: message.data.access,
+                  postAsAnonymous: message.data.postAsAnonymous,
+                  attachments: message.data.attachments || [],
+                  tags: message.data.tags.map((t) => t.tags.tagName) || [],
+                  updatedAt: message.data.updatedAt,
+                }
+              : complaint
+          )
+        );
+        break;
+
+      case "DELETED":
+        console.log("Complaint deleted:", message.data);
+        setComplaints((prevComplaints) =>
+          prevComplaints.filter(
+            (complaint) => complaint.id !== message.data.complaintId
+          )
+        );
+        break;
+      case "DELEGATED":
+        setComplaints((prevComplaints) =>
+          prevComplaints.filter(
+            (complaint) => complaint.id !== message.data.complaintId
+          )
+        );
         break;
 
       default:
