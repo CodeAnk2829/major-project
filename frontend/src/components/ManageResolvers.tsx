@@ -10,7 +10,11 @@ import {
 } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { AiOutlineNotification } from "react-icons/ai";
-import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
+import {
+  customThemeSelect,
+  customThemeTi,
+} from "../utils/flowbiteCustomThemes";
+import AssignResolverModal from "./AssignResolverModal";
 
 function ManageResolvers() {
   const [resolvers, setResolvers] = useState<any[]>([]);
@@ -27,7 +31,7 @@ function ManageResolvers() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [resolverToDelete, setResolverToDelete] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
+  const [tags, setTags] = useState([]);
   const showError = (message: string) => {
     setError(message);
     setTimeout(() => {
@@ -35,109 +39,52 @@ function ManageResolvers() {
     }, 3000);
   };
 
-
-  //fetch resolvers and locations from backend
   useEffect(() => {
-    const fetchResolvers = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/v1/admin/get/resolvers");
-        const data = await res.json();
-        const { ok, ...resolverDetails } = data;
-        if (ok) {
-          setResolvers(resolverDetails.resolvers);
-          console.log(resolvers);
-        }
-      } catch (error) {
-        showError("Failed to fetch resolvers: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchLocations = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/v1/admin/get/locations");
-        const data = await res.json();
-        if (data.ok) {
-          setLocations(data.locations);
-        } else {
-          console.error("Cannot fetch locations: ", data.error);
-        }
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchResolvers();
     fetchLocations();
   }, []);
 
-  //add a new resolver
-  const handleAddResolver = async () => {
-    if (
-      !newResolver.name ||
-      !newResolver.email ||
-      !newResolver.phoneNumber ||
-      !newResolver.password ||
-      !newResolver.occupation ||
-      !newResolver.location
-    ) {
-      setAddError("Please fill all the field.");
-    }
-    if (newResolver.name.length < 3) {
-      setAddError("Name must be atleast 3 characters.");
-    }
-    if (newResolver.password.length < 6) {
-      setAddError("Password must be atleast 6 characters.");
-    }
-    if (newResolver.location.length < 3) {
-      setAddError("Invalid location.");
-    }
-    if (newResolver.occupation.length < 3) {
-      setAddError("Occupation must be atleast 3 characters.");
-    }
-
+  const fetchResolvers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/admin/assign/resolver", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newResolver),
-      });
+      const res = await fetch("/api/v1/admin/get/resolvers");
       const data = await res.json();
       if (data.ok) {
-        setToastMessage("Resolver added successfully!");
-        setAddError(null);
-        setResolvers((prev) => [...prev, { ...data }]);
-        setNewResolver({ role: "RESOLVER" });
-        setShowAddModal(false);
-      } else {
-        setToastMessage(data.error || "Failed to add new resolver.");
+        setResolvers(data.resolversDetails);
+        console.log(data.resolversDetails);
       }
     } catch (error) {
-      console.error("Failed to add incharge:", error);
-      setToastMessage("An error occurred.");
-      setAddError(error);
+      showError("Failed to fetch resolvers: ", error);
     } finally {
       setLoading(false);
     }
   };
 
-  //fetch details of particular resolver
+  const fetchLocations = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/admin/get/locations");
+      const data = await res.json();
+      if (data.ok) {
+        setLocations(data.locations);
+      } else {
+        console.error("Cannot fetch locations: ", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchResolverDetails = async (id) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/v1/admin/get/resolver/${id}`);
       const data = await res.json();
-      const { ok, ...resolverDetails } = data;
-      console.log(resolverDetails);
-      if (ok) {
-        setSelectedResolver(resolverDetails);
+      console.log(data.resolverDetails);
+      if (data.ok) {
+        setSelectedResolver(data.resolverDetails);
         setUpdatedResolver({
           resolverId: id,
           name: resolverDetails.resolverName,
@@ -205,29 +152,25 @@ function ManageResolvers() {
   const handleDeleteResolver = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/admin/remove/user/${resolverToDelete}`,{
+      const res = await fetch(`/api/v1/admin/remove/user/${resolverToDelete}`, {
         method: "DELETE",
-      })
+      });
       const data = await res.json();
       if (data.ok) {
-        setResolvers(resolvers.filter((resolver) => resolver.id !== resolverToDelete));
+        setResolvers(
+          resolvers.filter((resolver) => resolver.id !== resolverToDelete)
+        );
         setToastMessage("Resolver deleted successfully!");
         setShowDeleteModal(false);
       }
     } catch (error) {
       console.error("Failed to delete resolver:", error);
       setToastMessage("Failed to delete resolver.");
-    } finally{
+    } finally {
       setLoading(false);
     }
-  }
-
-  const formatLocation = (location) => {
-    const { location: loc, locationName, locationBlock } = location;
-    return `${loc}${locationName ? `-${locationName}` : ""}${
-      locationBlock ? `-${locationBlock}` : ""
-    }`;
   };
+
   return (
     <div>
       {/* Add Button*/}
@@ -292,8 +235,8 @@ function ManageResolvers() {
                 </Table.Cell>
                 <Table.Cell>{resolver.email}</Table.Cell>
                 <Table.Cell>{resolver.phoneNumber}</Table.Cell>
-                {formatLocation(resolver.resolver.location)}
-                <Table.Cell>{resolver.resolver.occupation}</Table.Cell>
+                {resolver.location}
+                <Table.Cell>{resolver.occupation}</Table.Cell>
                 <Table.Cell className="flex flex-row gap-4">
                   <Button
                     color="warning"
@@ -320,107 +263,12 @@ function ManageResolvers() {
       </Table>
 
       {/* Add Modal */}
-      <Modal
-        show={showAddModal}
-        onClose={() => {
-          setShowAddModal(false);
-          setNewResolver({ role: "RESOLVER" });
-        }}
-        size="4xl"
-      >
-        <Modal.Header>Add New Resolver</Modal.Header>
-        <Modal.Body className="flex flex-col gap-2">
-          <TextInput
-            placeholder="Name"
-            value={newResolver.name || ""}
-            onChange={(e) =>
-              setNewResolver({ ...newResolver, name: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-          <TextInput
-            placeholder="Email"
-            value={newResolver.email || ""}
-            onChange={(e) =>
-              setNewResolver({ ...newResolver, email: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-
-          <TextInput
-            placeholder="Phone Number"
-            value={newResolver.phoneNumber || ""}
-            onChange={(e) =>
-              setNewResolver({ ...newResolver, phoneNumber: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-
-          <TextInput
-            placeholder="Password"
-            value={newResolver.password || ""}
-            onChange={(e) =>
-              setNewResolver({ ...newResolver, password: e.target.value })
-            }
-            theme={customThemeTi}
-            type="password"
-          />
-
-          <Select
-            theme={customThemeSelect}
-            onChange={(e) =>
-              setNewResolver({
-                ...newResolver,
-                location: e.target.value,
-              })
-            }
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select Location
-            </option>
-            {locations &&
-              locations.length > 0 &&
-              locations.map((loc) => (
-                <option
-                  key={loc.id}
-                  value={`${loc.location}${
-                    loc.locationName ? `-${loc.locationName}` : ""
-                  }${loc.locationBlock ? `-${loc.locationBlock}` : ""}`}
-                >
-                  {loc.location}
-                  {loc.locationName ? `-${loc.locationName}` : ""}
-                  {""}
-                  {loc.locationBlock ? `-${loc.locationBlock}` : ""}
-                </option>
-              ))}
-          </Select>
-
-          <TextInput
-            placeholder="Occupation"
-            value={newResolver.occupation || ""}
-            onChange={(e) =>
-              setNewResolver({ ...newResolver, occupation: e.target.value })
-            }
-            theme={customThemeTi}
-          />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={handleAddResolver} className="bg-[rgb(60,79,131)]">
-            Add
-          </Button>
-          <Button
-            color="gray"
-            onClick={() => {
-              setNewResolver({ role: "RESOLVER" });
-              setShowAddModal(false);
-            }}
-          >
-            Cancel
-          </Button>
-          {addError && <Alert color="failure">{addError}</Alert>}
-        </Modal.Footer>
-      </Modal>
+      <AssignResolverModal
+        showModal={showAddModal}
+        setShowModal={setShowAddModal}
+        refreshResolvers={fetchResolvers}
+        setToastMessage={setToastMessage}
+      />
 
       {/* Show Details Modal*/}
       <Modal
@@ -432,7 +280,7 @@ function ManageResolvers() {
           {selectedResolver && (
             <div>
               <p>
-                <strong>Name:</strong> {selectedResolver.resolverName}
+                <strong>Name:</strong> {selectedResolver.name}
               </p>
               <p>
                 <strong>Email:</strong> {selectedResolver.email}
@@ -455,6 +303,7 @@ function ManageResolvers() {
             onClick={() => {
               setShowDetailsModal(false);
               setShowUpdateModal(true);
+              fetchResolverDetails(selectedResolver);
             }}
           >
             Update
@@ -471,7 +320,7 @@ function ManageResolvers() {
         size="4xl"
         onClose={() => setShowUpdateModal(false)}
       >
-        <Modal.Header>Update Incharge Details</Modal.Header>
+        <Modal.Header>Update Resolver Details</Modal.Header>
         <Modal.Body className="flex flex-col gap-3">
           <TextInput
             placeholder="Name"
@@ -556,8 +405,8 @@ function ManageResolvers() {
         <Modal.Header>Confirm Deletion</Modal.Header>
         <Modal.Body>
           <p>
-            Are you sure you want to delete the resolver? This action
-            cannot be undone.
+            Are you sure you want to delete the resolver? This action cannot be
+            undone.
           </p>
         </Modal.Body>
         <Modal.Footer>
