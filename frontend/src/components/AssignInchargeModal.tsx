@@ -128,21 +128,6 @@ function AssignInchargeModal({ showModal, setShowModal, refreshIncharges, setToa
         }}>
       <Modal.Header>Add Issue Incharge</Modal.Header>
       <Modal.Body>
-        {/* {toastMessage && (
-          <Toast>
-            <div className="flex items-center">
-              <HiCheck className="h-5 w-5 text-green-500" />
-              <span className="ml-3">{toastMessage}</span>
-            </div>
-            <button
-              className="ml-auto p-1.5"
-              onClick={() => setToastMessage(null)}
-            >
-              ✖️
-            </button>
-          </Toast>
-        )} */}
-
         {error && <Alert color="failure">{error}</Alert>}
 
         {/* Name, Email, Phone Fields */}
