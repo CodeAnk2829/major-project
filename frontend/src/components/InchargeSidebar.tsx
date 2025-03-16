@@ -21,10 +21,9 @@ function InchargeSidebar() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    //TODO: add logout
     const handleSignout = async () => {
       try {
-        const res = await fetch("", { method: "POST" });
+        const res = await fetch("/api/v1/user/auth/signout", { method: "POST" });
         const data = await res.json();
         if (!res.ok) {
           console.log(data.message);
