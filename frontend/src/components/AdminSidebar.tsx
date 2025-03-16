@@ -1,8 +1,6 @@
 import { FaChevronRight, FaSignOutAlt } from "react-icons/fa";
 import {
-  HiHome,
   HiChartPie,
-  HiClipboard,
   HiUsers,
   HiTag,
   HiLocationMarker,
@@ -31,7 +29,7 @@ const AdminSidebar = () => {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("", { method: "POST" });
+      const res = await fetch("/api/v1/user/auth/signout", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         console.log(data.message);
@@ -49,11 +47,6 @@ const AdminSidebar = () => {
       label: "Dashboard",
       icon: <HiChartPie className="text-2xl" />,
       path: "/admin/dashboard",
-    },
-    {
-      label: "Manage Complaints",
-      icon: <HiClipboard className="text-2xl" />,
-      path: "/admin/complaints",
     },
     {
       label: "Manage Users",
