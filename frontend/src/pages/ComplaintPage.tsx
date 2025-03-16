@@ -17,6 +17,7 @@ import statusColors from "../utils/statusColors";
 import Lightbox from "yet-another-react-lightbox";
 import Inline from "yet-another-react-lightbox/plugins/inline";
 import "yet-another-react-lightbox/styles.css";
+import ComplaintTimeline from "../components/ComplaintTimeline";
 
 function ComplaintPage() {
   const id = useLocation().pathname.split("/")[2];
@@ -50,6 +51,7 @@ function ComplaintPage() {
       } catch (err) {
         console.error("Error fetching complaint:", err);
         setError("Failed to load complaint. Please try again later.");
+        navigate("*");
       } finally {
         setLoading(false);
       }
@@ -115,10 +117,75 @@ function ComplaintPage() {
       console.log(error.message);
     }
   };
-  const localDate = new Date(complaint.createdAt);
+
   const createdAtDisplay = moment(complaint.createdAt)
   .tz('Europe/London')
   .format('dddd, Do MMMM YYYY, h:mm A');
+
+  const complaintData = [
+    {
+      status: "Created",
+      description: "Complaint was created.",
+      timestamp: "06-02-2025 22:40:56",
+    },
+    {
+      status: "Assigned",
+      description: "Complaint assigned to Care Taker.",
+      timestamp: "06-02-2025 22:41:01",
+      assignedTo: "Care Taker k10a",
+      designation: "Care Taker",
+      location: "Hostel-10A",
+      expiry: "13-02-2025 22:41:01",
+    },
+    {
+      status: "Escalated",
+      description: "Escalated to Assistant Warden.",
+      timestamp: "08-02-2025 22:41:01",
+      assignedTo: "Asst Warden k10a",
+      designation: "Assistant Warden",
+      location: "Hostel-10A",
+      expiry: "16-02-2025 22:41:01",
+    },
+    {
+      status: "Escalated",
+      description: "Further escalated to Warden.",
+      timestamp: "16-02-2025 22:41:01",
+      assignedTo: "Warden k10a",
+      designation: "Warden",
+      location: "Hostel-10A",
+      expiry: "23-02-2025 22:41:01",
+    },
+    {
+      status: "Delegated",
+      description: "Delegated to Cleaner.",
+      timestamp: "17-02-2025 22:41:01",
+      assignedTo: "Cleaner k10a",
+      designation: "Cleaner",
+      location: "Hostel-10A",
+    },
+    {
+      status: "Resolved",
+      description: "Complaint resolved by Warden.",
+      timestamp: "17-02-2025 22:41:01",
+      assignedTo: "Warden k10a",
+      designation: "Warden",
+      location: "Hostel-10A",
+    },
+    {
+      status: "Feedback",
+      description: "Feedback given by Warden.",
+      timestamp: "17-02-2025 23:41:01",
+      assignedTo: "Warden k10a",
+      designation: "Warden",
+      location: "Hostel-10A",
+    },
+    {
+      status: "Closed",
+      description: "Complaint closed.",
+      timestamp: "17-02-2025 23:41:01",
+      location: "Hostel-10A",
+    },
+  ];
   return (
     <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">
       <h1 className="text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl">
@@ -279,6 +346,7 @@ function ComplaintPage() {
         onClose={() => setUpdateModalOpen(false)}
         complaintIdProp={id}
       />
+      <ComplaintTimeline timelineData={complaintData} />
     </main>
   );
 }

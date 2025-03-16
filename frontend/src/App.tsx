@@ -21,6 +21,7 @@ import InchargeComplaintPage from './pages/InchargeComplaintPage'
 import InchargeProfile from './pages/InchargeProfile'
 import InchargeNotifications from './pages/InchargeNotifications'
 import ManageProfessions from './pages/ManageProfessions'
+import NotFound from './pages/NotFound'
 
 function App() {
 
@@ -60,7 +61,7 @@ function App() {
           <Route path="/admin/locations" element={<ManageLocations />} />
           <Route path="/admin/professions" element={<ManageProfessions />} />
         </Route>
-        <Route path="/not-authorized" element={<div>Not Authorized</div>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
