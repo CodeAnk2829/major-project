@@ -13,11 +13,6 @@ interface Attachment {
   imageUrl: string;
 }
 
-interface ComplaintDetails {
-  actionTaken: boolean;
-  upvotes: number;
-}
-
 interface User {
   userId: string;
   name: string;
@@ -32,14 +27,25 @@ interface Complaint {
   title: string;
   description: string;
   access: string;
-  userId: string;
-  user: User;
+  complainerId: string;
+  complainerName: User;
   createdAt: string;
   status: string;
   attachments: Attachment[];
-  complaintDetails: ComplaintDetails;
+  actionTaken: boolean;
+  upvotes: number;
   postAsAnonymous: boolean;
   tags: Tags[];
+  assignedTo: string;
+  inchargeId: string;
+  inchargeName: string;
+  inchargeEmail: string;
+  inchargePhone: string;
+  designation: string;
+  inchargeRank: number;
+  location: string;
+  assignedAt: Date;
+  expiter: Date;
 }
 
 interface ComplaintCardProps {
@@ -89,9 +95,13 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
     showUpvote && upvotedComplaints.includes(String(complaint.id));
 
   // Prepare images for the Lightbox
-  const slides = complaint && complaint.attachments && complaint.attachments.length > 0 && complaint.attachments.map((attachment) => ({
-    src: attachment.imageUrl,
-  }));
+  const slides =
+    complaint &&
+    complaint.attachments &&
+    complaint.attachments.length > 0 &&
+    complaint.attachments.map((attachment) => ({
+      src: attachment.imageUrl,
+    }));
 
   const createdAtDisplay = moment(complaint.createdAt)
     .tz("Europe/London")
@@ -203,7 +213,9 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
           {complaint && complaint.location && (
-            <Badge color="warning" className="text-sm font-medium">{complaint.location}</Badge>
+            <Badge color="warning" className="text-sm font-medium">
+              {complaint.location}
+            </Badge>
           )}
         </div>
         {showBadges && (
@@ -233,20 +245,20 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
 
         {showUpvote && (
           <div className="flex items-center">
-            <button
-              className={`text-xl ${
-                isUpvoted ? "text-blue-800" : "text-gray-600"
-              } hover:text-blue-800`}
-              onClick={() => {
-                handleUpvote(complaint.id);
-              }}
-            >
-              {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
-            </button>
-            <span className="ml-2 text-gray-600 text-sm">
-              {complaint.upvotes} upvotes
-            </span>
-          </div>
+          <button
+            className={`text-xl ${
+              isUpvoted ? "text-blue-800" : "text-gray-600"
+            } hover:text-blue-800`}
+            onClick={() => {
+              handleUpvote(complaint.id);
+            }}
+          >
+            {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
+          </button>
+          <span className="ml-2 text-gray-600 text-sm">
+            {complaint.upvotes} upvotes
+          </span>
+        </div>
         )}
 
         {showActions && (
@@ -312,6 +324,56 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
           </div>
         )}
       </div>
+      {!showInchargeActions && (
+        <p className="italic font-monospace font-thin antialiased pl-6 pb-2">
+          {complaint.status === "ASSIGNED" && (
+            <>
+              This complaint has been <strong>assigned</strong> to{" "}
+              <strong className="font-bold">{complaint.assignedTo}</strong> on{" "}
+              <strong className="font-bold">
+                {moment(complaint.assignedAt)
+                  .tz("Europe/London")
+                  .format("ddd, Do MMM YY, HH:mm")}
+              </strong>
+              .
+            </>
+          )}
+          {/* {complaint.status === "RESOLVED" && (
+            <>
+              This complaint was <strong>resolved</strong> 
+              on{" "}
+              <strong className="font-bold">
+                {moment(complaint.assignedAt)
+                  .tz("Europe/London")
+                  .format("ddd, Do MMM YY, HH:mm")}
+              </strong>
+              .
+            </>
+          )}
+          {complaint.status === "ESCALATED" && (
+            <>
+              This complaint was <strong>escalated</strong> on{" "}
+              <strong className="font-bold">
+                {moment(complaint.assignedAt)
+                  .tz("Europe/London")
+                  .format("ddd, Do MMM YY, HH:mm")}
+              </strong>
+              .
+            </>
+          )}
+          {complaint.status === "DELEGATED" && (
+            <>
+              This complaint was <strong>delegated</strong> on{" "}
+              <strong className="font-bold">
+                {moment(complaint.assignedAt)
+                  .tz("Europe/London")
+                  .format("ddd, Do MMM YY, HH:mm")}
+              </strong>
+              .
+            </>
+          )} */}
+        </p>
+      )}
     </div>
   );
 };

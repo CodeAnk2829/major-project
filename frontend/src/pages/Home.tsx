@@ -35,6 +35,7 @@ const Home = () => {
   const handleWebSocketUpdate = useCallback((message) => {
     switch (message.type) {
       case "CREATED":
+        console.log("created: ", message.data);
         setNewComplaintsAvailable(true);
         break;
       case "DELETED":
@@ -85,30 +86,114 @@ const Home = () => {
           )
         );
         break;
-        case "RESOLVED":
-          console.log("Complaint resolved:", message.data);
-          setComplaints((prevComplaints) =>
-              prevComplaints.map((complaint) =>
-                  complaint.id === message.data.complaintId
-                      ? {
-                            ...complaint,
-                            status: "RESOLVED", 
-                            resolver: {
-                                name: message.data.resolverDetails.name,
-                                email: message.data.resolverDetails.email,
-                                phoneNumber: message.data.resolverDetails.phoneNumber,
-                            },
-                            resolvedAt: message.data.resolverdAt || message.data.resolvedAt, //typo
-                        }
-                      : complaint
-              )
-          );
-          break;
+      case "RESOLVED":
+        console.log("Complaint resolved:", message.data);
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "RESOLVED",
+                  resolver: {
+                    name: message.data.resolverDetails.name,
+                    email: message.data.resolverDetails.email,
+                    phoneNumber: message.data.resolverDetails.phoneNumber,
+                  },
+                  resolvedAt:
+                    message.data.resolverdAt || message.data.resolvedAt, //typo
+                }
+              : complaint
+          )
+        );
+        setFilteredComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "RESOLVED",
+                  resolver: {
+                    name: message.data.resolverDetails.name,
+                    email: message.data.resolverDetails.email,
+                    phoneNumber: message.data.resolverDetails.phoneNumber,
+                  },
+                  resolvedAt:
+                    message.data.resolverdAt || message.data.resolvedAt, //typo
+                }
+              : complaint
+          ));
+        break;
+
+      case "DELEGATED":
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "DELEGATED",
+                  assignedTo: message.data.delegateDetails?.name,
+                  assignedAt:
+                    message.data.delegatedAt || new Date().toISOString(),
+                }
+              : complaint
+          )
+        );
+
+        setFilteredComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "DELEGATED",
+                  assignedTo: message.data.delegateDetails?.name,
+                  assignedAt:
+                    message.data.delegatedAt || new Date().toISOString(),
+                }
+              : complaint
+          ));
+        break;
+
+      case "ESCALATED":
+        console.log("Complaint escalated:", message.data);
+        const escalateComplaint = (complaint) => {
+          if (complaint.id === message.data.complaintId) {
+            return {
+              ...complaint,
+              status: "ESCALATED",
+              assignedTo: message.data.escalateDetails?.name,
+              assignedAt: message.data.escalatedAt || new Date().toISOString(),
+            };
+          }
+          return complaint;
+        };
+
+        setComplaints((prev) => prev.map(escalateComplaint));
+        setFilteredComplaints((prev) => prev.map(escalateComplaint));
+        break;
+
+      case "UPVOTED":
+        console.log("before", complaints);
+        const updatedComplaints = complaints.map((complaint) => {
+          if (complaint.id === message.data.complaintId) {
+            return { ...complaint, upvotes: message.data.upvotes };
+          }
+          return complaint;
+        });
+        setComplaints(updatedComplaints);
+        
+        console.log("complaints are", updatedComplaints);
+        setUpvotedComplaints((prevUpvoted) =>
+          message.data.hasUpvoted
+            ? [...new Set([...prevUpvoted, message.data.complaintId])]
+            : prevUpvoted.filter((id) => id !== message.data.complaintId)
+        );
+        break;
+
       default:
         console.log("Unknown message type:", message.type);
     }
   }, []);
   useComplaintWebSocket(handleWebSocketUpdate);
+
   useEffect(() => {
     const fetchComplaints = async () => {
       setLoading(true); // Start the loading state
@@ -161,6 +246,7 @@ const Home = () => {
               }
             : complaint
         );
+        // console.log("here : ", newComplaints);
         return [...newComplaints]; // Ensure a fresh array
       });
 
@@ -168,6 +254,19 @@ const Home = () => {
         return data.hasUpvoted
           ? [...new Set([...prevUpvoted, complaintId])]
           : prevUpvoted.filter((id) => id !== complaintId);
+      });
+
+      setFilteredComplaints((prevComplaints) => {
+        const newComplaints = prevComplaints.map((complaint) =>
+          complaint.id === complaintId
+            ? {
+                ...complaint,
+                upvotes: data.upvotes,
+              }
+            : complaint
+        );
+        // console.log("here : ", newComplaints);
+        return [...newComplaints]; // Ensure a fresh array
       });
     } catch (error) {
       console.error("Failed to upvote the complaint:", error);
@@ -272,6 +371,7 @@ const Home = () => {
                           layout
                         >
                           <ComplaintCard
+                            key={complaint.id}
                             complaint={complaint}
                             showProfile={true}
                             showUpvote={true}
