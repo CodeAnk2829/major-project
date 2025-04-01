@@ -18,6 +18,7 @@ import Lightbox from "yet-another-react-lightbox";
 import Inline from "yet-another-react-lightbox/plugins/inline";
 import "yet-another-react-lightbox/styles.css";
 import ComplaintTimeline from "../components/ComplaintTimeline";
+import { motion } from "framer-motion";
 
 function ComplaintPage() {
   const id = useLocation().pathname.split("/")[2];
@@ -31,48 +32,39 @@ function ComplaintPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [slides, setSlides] = useState<{ src: string }[]>([]);
+  const [complaintHistory, setComplaintHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchComplaint = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/v1/complaint/get/complaint/${id}`);
-        const data = await response.json();
-        console.log(data);
-        setComplaint(data);
-        setHasUserUpvoted(data.hasUpvoted);
-
-        if (data.attachments.length > 0) {
-          setSlides(
-            data.attachments.map((attachment) => ({ src: attachment.imageUrl }))
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching complaint:", err);
-        setError("Failed to load complaint. Please try again later.");
-        navigate("*");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchComplaint();
+    fetchComplaintHistory();
   }, [id]);
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
-      </div>
-    );
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+  const fetchComplaint = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/v1/complaint/get/complaint/${id}`);
+      const data = await response.json();
+      console.log(data);
+      setComplaint(data);
+      setHasUserUpvoted(data.hasUpvoted);
+
+      if (data.attachments.length > 0) {
+        setSlides(
+          data.attachments.map((attachment) => ({ src: attachment.imageUrl }))
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching complaint:", err);
+      setError("Failed to load complaint. Please try again later.");
+      navigate("*");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpvote = async () => {
     try {
       const res = await fetch(`/api/v1/complaint/upvote/${id}`, {
@@ -118,74 +110,84 @@ function ComplaintPage() {
     }
   };
 
-  const createdAtDisplay = moment(complaint.createdAt)
-  .tz('Europe/London')
-  .format('dddd, Do MMMM YYYY, h:mm A');
+  const fetchComplaintHistory = async () => {
+    const generateDescription = (entry) => {
+      if (entry.createdBy)
+        return `Complaint was created by ${entry.createdBy}.`;
+      if (entry.assignedTo) return `Complaint assigned to ${entry.assignedTo}.`;
+      if (entry.delegatedTo) return `Delegated to ${entry.delegatedTo}.`;
+      if (entry.escalatedTo) return `Escalated to ${entry.escalatedTo}.`;
+      if (entry.resolvedBy) return `Resolved by ${entry.resolvedBy}.`;
+      if (entry.closedBy) return `Closed by ${entry.closedBy}.`;
+      return "Status updated.";
+    };
+    try {
+      const res = await fetch(`/api/v1/complaint/get/complaint-history/${id}`);
+      const data = await res.json();
+      console.log(data);
+      if (data.ok) {
+        const timelineFormatted = data.complaintHistory.map((entry) => {
+          const status = Object.keys(entry).find((k) =>
+            [
+              "createdBy",
+              "assignedTo",
+              "delegatedTo",
+              "escalatedTo",
+              "resolvedBy",
+              "closedBy",
+            ].includes(k)
+          );
+          return {
+            status: status?.replace(/By|To/g, "") ?? "Unknown",
+            description: generateDescription(entry),
+            timestamp: moment(
+              entry[Object.keys(entry).find((k) => /At$/.test(k))]
+            )
+              .tz("Europe/London")
+              .format("DD-MM-YYYY HH:mm:ss"),
+            assignedTo:
+              entry.assignedTo ||
+              entry.delegatedTo ||
+              entry.escalatedTo ||
+              entry.resolvedBy ||
+              entry.closedBy ||
+              "",
+            designation: entry.designation || "",
+            location: data.location || "",
+            expiry: entry.expiredAt
+              ? moment(entry.expiredAt)
+                  .tz("Europe/London")
+                  .format("DD-MM-YYYY HH:mm:ss")
+              : null,
+          };
+        });
+        setComplaintHistory(timelineFormatted);
+      }
+    } catch (error) {
+      console.error("Error fetching complaint:", error);
+      setError("Failed to load complaint. Please try again later.");
+      //navigate("*");
+    }
+  };
 
-  const complaintData = [
-    {
-      status: "Created",
-      description: "Complaint was created.",
-      timestamp: "06-02-2025 22:40:56",
-    },
-    {
-      status: "Assigned",
-      description: "Complaint assigned to Care Taker.",
-      timestamp: "06-02-2025 22:41:01",
-      assignedTo: "Care Taker k10a",
-      designation: "Care Taker",
-      location: "Hostel-10A",
-      expiry: "13-02-2025 22:41:01",
-    },
-    {
-      status: "Escalated",
-      description: "Escalated to Assistant Warden.",
-      timestamp: "08-02-2025 22:41:01",
-      assignedTo: "Asst Warden k10a",
-      designation: "Assistant Warden",
-      location: "Hostel-10A",
-      expiry: "16-02-2025 22:41:01",
-    },
-    {
-      status: "Escalated",
-      description: "Further escalated to Warden.",
-      timestamp: "16-02-2025 22:41:01",
-      assignedTo: "Warden k10a",
-      designation: "Warden",
-      location: "Hostel-10A",
-      expiry: "23-02-2025 22:41:01",
-    },
-    {
-      status: "Delegated",
-      description: "Delegated to Cleaner.",
-      timestamp: "17-02-2025 22:41:01",
-      assignedTo: "Cleaner k10a",
-      designation: "Cleaner",
-      location: "Hostel-10A",
-    },
-    {
-      status: "Resolved",
-      description: "Complaint resolved by Warden.",
-      timestamp: "17-02-2025 22:41:01",
-      assignedTo: "Warden k10a",
-      designation: "Warden",
-      location: "Hostel-10A",
-    },
-    {
-      status: "Feedback",
-      description: "Feedback given by Warden.",
-      timestamp: "17-02-2025 23:41:01",
-      assignedTo: "Warden k10a",
-      designation: "Warden",
-      location: "Hostel-10A",
-    },
-    {
-      status: "Closed",
-      description: "Complaint closed.",
-      timestamp: "17-02-2025 23:41:01",
-      location: "Hostel-10A",
-    },
-  ];
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spinner size="xl" className="fill-[rgb(60,79,131)]" />
+      </div>
+    );
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  const createdAtDisplay = moment(complaint.createdAt)
+    .tz("Europe/London")
+    .format("dddd, Do MMMM YYYY, h:mm A");
+
   return (
     <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">
       <h1 className="text-3xl mt-10 p-3 text-center font-serif max-w-2xl mx-auto lg:text-4xl">
@@ -287,7 +289,7 @@ function ComplaintPage() {
         className="p-3 max-w-2xl mx-auto w-full"
         dangerouslySetInnerHTML={{ __html: complaint && complaint.description }}
       ></div>
-      {
+      {currentUser && currentUser.id === complaint.complainerId && (
         <div className="mt-8 flex gap-4 self-center">
           <Tooltip
             content={
@@ -325,8 +327,23 @@ function ComplaintPage() {
               Delete
             </Button>
           </Tooltip>
+          <Tooltip
+            content="Show Complaint History"
+            arrow={false}
+            trigger="hover"
+          >
+            <Button
+              gradientDuoTone="purpleToBlue"
+              onClick={() => setShowHistory(!showHistory)}
+              outline
+            >
+              {showHistory
+                ? "Hide Complaint History"
+                : "Show Complaint History"}
+            </Button>
+          </Tooltip>
         </div>
-      }
+      )}
       <Modal show={deleteModal} onClose={() => setDeleteModal(false)} size="lg">
         <Modal.Header>Delete Complaint</Modal.Header>
         <Modal.Body>
@@ -346,7 +363,19 @@ function ComplaintPage() {
         onClose={() => setUpdateModalOpen(false)}
         complaintIdProp={id}
       />
-      <ComplaintTimeline timelineData={complaintData} />
+      {/* <ComplaintTimeline timelineData={complaintHistory} /> */}
+
+      {showHistory && (
+        <motion.div
+          initial={{ x: "100%", opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: "100%", opacity: 0 }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="fixed right-0 top-0 h-full w-1/4 shadow-lg bg-white z-50 overflow-y-auto p-6 border-l"
+        >
+          <ComplaintTimeline timelineData={complaintHistory} />
+        </motion.div>
+      )}
     </main>
   );
 }

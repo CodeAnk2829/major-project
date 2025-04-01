@@ -19,15 +19,16 @@ const statusIcons = {
 
 function ComplaintTimeline({ timelineData }) {
   return (
-    <div className="pt-6">
+    <div className="pt-6 h-[80vh]">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
         Complaint Progress
       </h2>
-      <Timeline horizontal theme={customThemeTimeline}>
+      <Timeline theme={customThemeTimeline}>
         <div className={`grid gap-6 justify-center`}
-          style={{
-            gridTemplateColumns: `repeat(4, minmax(250px, 1fr))`,
-          }}>
+          // style={{
+          //   gridTemplateColumns: `repeat(4, minmax(250px, 1fr))`,
+          // }}
+      >
           {timelineData.map((event, index) => (
             <Timeline.Item key={index} className="flex flex-col">
               <Timeline.Point
