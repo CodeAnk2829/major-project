@@ -1,6 +1,7 @@
-import { Button, Modal, Spinner, Table, Toast } from "flowbite-react";
+import { Button, Modal, Spinner, Table, TextInput, Toast } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { AiOutlineNotification } from "react-icons/ai";
+import { customThemeTi } from "../utils/flowbiteCustomThemes";
 
 function ManageUsers() {
   const [users, setUsers] = useState([]);
@@ -8,6 +9,8 @@ function ManageUsers() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -17,6 +20,7 @@ function ManageUsers() {
         const data = await res.json();
         if (data.ok) {
           setUsers(data.users);
+          setFilteredUsers(data.users);
         }
       } catch (error) {
         console.error("Failed to fetch users: ", error);
@@ -43,9 +47,22 @@ function ManageUsers() {
     } catch (error) {
       console.error("Failed to delete user:", error);
       setToastMessage("Failed to delete user.");
-    } finally{
-        setLoading(false);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+
+    const filtered = users.filter((user) =>
+      [user.name, user.email, user.phoneNumber, user.role].some((field) =>
+        field?.toLowerCase().includes(term.toLowerCase())
+      )
+    );
+
+    setFilteredUsers(filtered);
   };
 
   return (
@@ -56,23 +73,32 @@ function ManageUsers() {
         </div>
       )}
       {toastMessage && (
-          <div className="absolute top-5 left-1/2">
-            <Toast>
-              <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-500">
-                <AiOutlineNotification className="h-5 w-5" />
-              </div>
-              <div className="ml-3 text-sm font-normal">{toastMessage}</div>
-              <button
-                type="button"
-                className="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 text-gray-400 hover:text-gray-900 focus:ring-2 focus:ring-gray-300"
-                aria-label="Close"
-                onClick={() => setToastMessage(null)}
-              >
-                ✖️
-              </button>
-            </Toast>
-          </div>
-        )}
+        <div className="absolute top-5 left-1/2">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-500">
+              <AiOutlineNotification className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">{toastMessage}</div>
+            <button
+              type="button"
+              className="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 text-gray-400 hover:text-gray-900 focus:ring-2 focus:ring-gray-300"
+              aria-label="Close"
+              onClick={() => setToastMessage(null)}
+            >
+              ✖️
+            </button>
+          </Toast>
+        </div>
+      )}
+      <div className="mb-4 w-full max-w-md">
+        <TextInput
+          type="text"
+          placeholder="Search by name, email, phone or role"
+          value={searchTerm}
+          onChange={handleSearch}
+          theme={customThemeTi}
+        />
+      </div>
       <Table hoverable>
         <Table.Head>
           {/* <Table.HeadCell>ID</Table.HeadCell> */}
@@ -83,8 +109,8 @@ function ManageUsers() {
           <Table.HeadCell>Actions</Table.HeadCell>
         </Table.Head>
         <Table.Body>
-          {users &&
-            users.map((user) => (
+          {filteredUsers &&
+            filteredUsers.map((user) => (
               <Table.Row key={user.id}>
                 {/* <Table.Cell>{user.id}</Table.Cell> */}
                 <Table.Cell>{user.name}</Table.Cell>
