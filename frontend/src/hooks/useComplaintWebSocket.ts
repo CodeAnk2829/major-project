@@ -36,7 +36,7 @@ export const useComplaintWebSocket = (onComplaintUpdate) => {
             method: 'SUBSCRIBE',
             userId: currentUser.id,
             role: mappedRole,
-            params: ['creation', 'deletion', 'delegation', 'escalation', 'resolution', 'updation'],
+            params: ['creation', 'deletion', 'delegation', 'escalation', 'resolution', 'updation','closure'],
         }));
     }, [sendMessage, currentUser]);
 
@@ -47,7 +47,7 @@ export const useComplaintWebSocket = (onComplaintUpdate) => {
                 method: 'UNSUBSCRIBE',
                 userId: currentUser.id,
                 role: currentUser.role,
-                params: ['creation', 'deletion', 'delegation', 'escalation', 'resolution', 'updation'],
+                params: ['creation', 'deletion', 'delegation', 'escalation', 'resolution', 'updation','closure'],
             }));
         };
     }, [subscribe, sendMessage]);

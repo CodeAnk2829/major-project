@@ -9,6 +9,7 @@ import { customThemePagination } from "../utils/flowbiteCustomThemes";
 import { useComplaintWebSocket } from "../hooks/useComplaintWebSocket";
 import { IoMdRefresh } from "react-icons/io";
 import { motion, AnimatePresence } from "framer-motion";
+import moment from "moment-timezone";
 interface Complaint {
   id: string;
   complaintDetails: {
@@ -47,7 +48,6 @@ const Home = () => {
         );
         break;
       case "UPDATED":
-        console.log("Complaint updated:", message.data);
         setComplaints((prevComplaints) =>
           prevComplaints.map((complaint) =>
             complaint.id === message.data.complaintId
@@ -132,7 +132,7 @@ const Home = () => {
                   status: "DELEGATED",
                   assignedTo: message.data.delegateDetails?.name,
                   assignedAt:
-                    message.data.delegatedAt || new Date().toISOString(),
+                    moment(message.data.delegatedAt || new Date()).tz("Europe/London").format(),
                 }
               : complaint
           )
@@ -146,7 +146,8 @@ const Home = () => {
                   status: "DELEGATED",
                   assignedTo: message.data.delegateDetails?.name,
                   assignedAt:
-                    message.data.delegatedAt || new Date().toISOString(),
+                    moment(message.data.delegatedAt || new Date()).tz("Europe/London")
+                    .format(),
                 }
               : complaint
           ));
@@ -158,9 +159,9 @@ const Home = () => {
           if (complaint.id === message.data.complaintId) {
             return {
               ...complaint,
-              status: "ESCALATED",
-              assignedTo: message.data.escalateDetails?.name,
-              assignedAt: message.data.escalatedAt || new Date().toISOString(),
+              //status: "ESCALATED",
+              assignedTo: message.data.inchargeName,
+              assignedAt: moment(message.data.escalatedAt || new Date()).tz("Europe/London").format(),
             };
           }
           return complaint;
@@ -171,7 +172,6 @@ const Home = () => {
         break;
 
       case "UPVOTED":
-        console.log("before", complaints);
         const updatedComplaints = complaints.map((complaint) => {
           if (complaint.id === message.data.complaintId) {
             return { ...complaint, upvotes: message.data.upvotes };
@@ -179,12 +179,36 @@ const Home = () => {
           return complaint;
         });
         setComplaints(updatedComplaints);
+        setFilteredComplaints(updatedComplaints);
         
-        console.log("complaints are", updatedComplaints);
         setUpvotedComplaints((prevUpvoted) =>
           message.data.hasUpvoted
             ? [...new Set([...prevUpvoted, message.data.complaintId])]
             : prevUpvoted.filter((id) => id !== message.data.complaintId)
+        );
+        break;
+
+      case "CLOSED":
+        console.log("Complaint closed:", message.data);
+        setComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "CLOSED",
+                }
+              : complaint
+          )
+        );
+        setFilteredComplaints((prevComplaints) =>
+          prevComplaints.map((complaint) =>
+            complaint.id === message.data.complaintId
+              ? {
+                  ...complaint,
+                  status: "CLOSED",
+                }
+              : complaint
+          )
         );
         break;
 
