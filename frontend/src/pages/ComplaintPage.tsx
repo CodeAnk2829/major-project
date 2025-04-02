@@ -6,7 +6,7 @@ import {
   Spinner,
   Tooltip,
 } from "flowbite-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AiOutlineDelete, AiOutlineEdit } from "react-icons/ai";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
 import { useSelector } from "react-redux";
@@ -19,6 +19,8 @@ import Inline from "yet-another-react-lightbox/plugins/inline";
 import "yet-another-react-lightbox/styles.css";
 import ComplaintTimeline from "../components/ComplaintTimeline";
 import { motion } from "framer-motion";
+import { useComplaintWebSocket } from "../hooks/useComplaintWebSocket";
+
 
 function ComplaintPage() {
   const id = useLocation().pathname.split("/")[2];
@@ -41,6 +43,49 @@ function ComplaintPage() {
     fetchComplaint();
     fetchComplaintHistory();
   }, [id]);
+
+  const handleComplaintWebSocketUpdate = useCallback((message) => {
+    if (!complaint || message.data.complaintId !== complaint.id) return;
+  
+    switch (message.type) {
+      case "RESOLVED":
+        setComplaint((prev) => ({
+          ...prev,
+          status: "RESOLVED",
+          resolver: message.data.resolverDetails,
+          resolvedAt: moment(message.data.resolvedAt)
+            .tz("Europe/London")
+            .format(),
+        }));
+        fetchComplaintHistory();
+        break;
+  
+      case "ESCALATED":
+      case "DELEGATED":
+        
+        setComplaint((prev) => ({
+          ...prev,
+          status: "ESCALATED",
+          assignedTo: message.data.inchargeName,
+          assignedAt: moment(message.data.escalatedAt || new Date()).tz("Europe/London").format(),
+        }));
+        fetchComplaintHistory();
+        break;
+  
+      case "CLOSED":
+        setComplaint((prev) => ({
+          ...prev,
+          status: "CLOSED",
+        }));
+        fetchComplaintHistory();
+        break;
+  
+      default:
+        break;
+    }
+  }, [complaint]);
+
+  useComplaintWebSocket(handleComplaintWebSocketUpdate);
 
   const fetchComplaint = async () => {
     setLoading(true);
