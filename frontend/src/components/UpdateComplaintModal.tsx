@@ -19,16 +19,20 @@ import { AiOutlineEdit } from "react-icons/ai";
 import { HiExclamation } from "react-icons/hi";
 import { IoClose, IoInformationCircleOutline } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
+import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
 
+interface UpdateComplaintModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  complaintIdProp: string;
+  onComplaintUpdate?: (updatedComplaint: any) => void;
+}
 const UpdateComplaintModal = ({
   isOpen,
   onClose,
   complaintIdProp,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  complaintIdProp: any;
-}) => {
+  onComplaintUpdate,
+}: UpdateComplaintModalProps) => {
   const [formData, setFormData] = useState<any>(null);
   const [file, setFile] = useState<any[]>([]);
   const [imageUploadProgress, setImageUploadProgress] = useState<number | null>(
@@ -41,30 +45,17 @@ const UpdateComplaintModal = ({
   const [loading, setLoading] = useState(true);
   const [complaint, setComplaint] = useState(null);
   const id = complaintIdProp;
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [parentLocation, setParentLocation] = useState("");
-  const [childLocation, setChildLocation] = useState("");
-  const [blockLocation, setBlockLocation] = useState("");
-  const locationData = {
-    Hostel: {
-      10: ["A", "B", "C"],
-      11: ["A", "B"],
-    },
-    Department: {
-      CSE: ["A", "B"],
-      ECE: ["A"],
-    },
-    Other: ["Library", "Sports Complex", "Cafeteria"],
-  };
+  const [submitting, setSubmitting] = useState(false);
+  const [tagMapping, setTagMapping] = useState([]);
 
   const navigate = useNavigate();
   useEffect(() => {
     const fetchComplaint = async () => {
+      if (!isOpen || !complaintIdProp) return;
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/complaint/${id}`);
+        const response = await fetch(`/api/v1/complaint/get/complaint/${id}`);
         const data = await response.json();
-        console.log(data);
         setComplaint(data);
       } catch (err) {
         console.error("Error fetching complaint:", err);
@@ -74,54 +65,44 @@ const UpdateComplaintModal = ({
       }
     };
 
+    const fetchTags = async () => {
+      try {
+        const res = await fetch("/api/v1/admin/get/tags");
+        const data = await res.json();
+        if(data.ok){
+          setTagMapping(data.tags);
+        }
+      } catch (error) {
+        console.error("Error fetching tags:", error);
+      }
+    }
+
     fetchComplaint();
-  }, [id]);
+    fetchTags();
+  }, [isOpen, complaintIdProp]);
 
   useEffect(() => {
     if (complaint) {
+      const complaintTagIds = complaint.tags.map(tagName => {
+        const tag = tagMapping.find(t => t.tagName === tagName);
+        return tag ? tag.id : null;
+      }).filter(id => id !== null);
+
       setFormData({
-        complaintId: complaint.complaintId,
+        complaintId: complaint.id,
         title: complaint.title,
         description: complaint.description,
         access: complaint.access,
         location: complaint.location,
-        tags: complaint.tags.map((tag: any) => tag.tags.id),
-        attachments: complaint.attachments.map(
-          (attachment: any) => attachment.imageUrl
-        ),
+        tags: complaintTagIds,
+        attachments: complaint.attachments.map((attachment: any) => attachment.imageUrl),
         postAsAnonymous: complaint.postAsAnonymous,
       });
-      const [parent, child, block] = complaint.location.split("-");
-      setParentLocation(parent || "");
-      setChildLocation(child || "");
-      setBlockLocation(block || "");
       setError(null);
     }
   }, [complaint]);
-
-  const handleEditLocation = () => setIsEditingLocation(!isEditingLocation); // Toggle location editing
-
-  const handleParentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setParentLocation(e.target.value);
-    setChildLocation("");
-    setFormData({ ...formData, location: e.target.value });
-  };
-
-  const handleChildChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setChildLocation(e.target.value);
-    setFormData({
-      ...formData,
-      location: `${parentLocation}-${e.target.value}`,
-    });
-  };
-
-  const handleBlockChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      location: `${parentLocation}-${childLocation}-${e.target.value}`,
-    });
-  };
-
+  
+  
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -173,37 +154,38 @@ const UpdateComplaintModal = ({
   };
 
   const handleTagSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedTagId = parseInt(e.target.value, 10); // Get tag ID
+    const selectedTagId = parseInt(e.target.value, 10);
+    const selectedTag = tagMapping.find(tag => tag.id === selectedTagId);
+    const sensitiveTags = ["Ragging", "Personal Issue"];
 
     if (!formData.tags.includes(selectedTagId)) {
       const updatedTags = [...formData.tags, selectedTagId];
+      const isSensitive = sensitiveTags.includes(selectedTag.tagName);
 
-      if (updatedTags.includes(8) || updatedTags.includes(22)) {
-        //tagid for Ragging and personal issue
+      if (isSensitive) {
         setFormData({ ...formData, tags: updatedTags, access: "PRIVATE" });
+        setTooltipError(true);
+        setTimeout(() => setTooltipError(false), 3000);
       } else {
         setFormData({ ...formData, tags: updatedTags });
       }
     }
   };
 
-  //TODO
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const dataToSend = {
-      ...complaint,
       title: formData.title,
       description: formData.description,
       access: formData.access,
       postAsAnonymous: formData.postAsAnonymous,
-      location: formData.location,
       tags: formData.tags,
       attachments: formData.attachments,
     };
-    console.log("Data to send: ", dataToSend);
     try {
+      setSubmitting(true);
       const res = await fetch(`/api/v1/complaint/update/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -222,165 +204,70 @@ const UpdateComplaintModal = ({
     } catch (error) {
       console.log(error);
       setCreateError("Something went wrong");
+    } finally {
+      setSubmitting(false);
     }
-  };
-
-  const customThemeTi = {
-    base: "flex",
-    addon:
-      "inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-200 px-3 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-400",
-    field: {
-      base: "relative w-full",
-      icon: {
-        base: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3",
-        svg: "h-5 w-5 text-gray-500 dark:text-gray-400",
-      },
-      rightIcon: {
-        base: "pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3",
-        svg: "h-5 w-5 text-gray-500 dark:text-gray-400",
-      },
-      input: {
-        base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50",
-        sizes: {
-          sm: "p-2 sm:text-xs",
-          md: "p-2.5 text-sm",
-          lg: "p-4 sm:text-base",
-        },
-        colors: {
-          gray: "border-gray-300 bg-gray-50 text-gray-900 focus:border-[rgb(60,79,131)] focus:ring-[rgb(60,79,131)] dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-cyan-500 dark:focus:ring-cyan-500",
-          info: "border-cyan-500 bg-cyan-50 text-cyan-900 placeholder-cyan-700 focus:border-cyan-500 focus:ring-cyan-500 dark:border-cyan-400 dark:bg-cyan-100 dark:focus:border-cyan-500 dark:focus:ring-cyan-500",
-          failure:
-            "border-red-500 bg-red-50 text-red-900 placeholder-red-700 focus:border-red-500 focus:ring-red-500 dark:border-red-400 dark:bg-red-100 dark:focus:border-red-500 dark:focus:ring-red-500",
-          warning:
-            "border-yellow-500 bg-yellow-50 text-yellow-900 placeholder-yellow-700 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-400 dark:bg-yellow-100 dark:focus:border-yellow-500 dark:focus:ring-yellow-500",
-          success:
-            "border-green-500 bg-green-50 text-green-900 placeholder-green-700 focus:border-green-500 focus:ring-green-500 dark:border-green-400 dark:bg-green-100 dark:focus:border-green-500 dark:focus:ring-green-500",
-        },
-        withRightIcon: {
-          on: "pr-10",
-          off: "",
-        },
-        withIcon: {
-          on: "pl-10",
-          off: "",
-        },
-        withAddon: {
-          on: "rounded-r-lg",
-          off: "rounded-lg",
-        },
-        withShadow: {
-          on: "shadow-sm dark:shadow-sm-light",
-          off: "",
-        },
-      },
-    },
-  };
-
-  const customThemeSelect = {
-    base: "flex",
-    addon:
-      "inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-200 px-3 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-400",
-    field: {
-      base: "relative w-full",
-      icon: {
-        base: "pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3",
-        svg: "h-5 w-5 text-gray-500 dark:text-gray-400",
-      },
-      select: {
-        base: "block w-full border disabled:cursor-not-allowed disabled:opacity-50",
-        withIcon: {
-          on: "pl-10",
-          off: "",
-        },
-        withAddon: {
-          on: "rounded-r-lg",
-          off: "rounded-lg",
-        },
-        withShadow: {
-          on: "shadow-sm dark:shadow-sm-light",
-          off: "",
-        },
-        sizes: {
-          sm: "p-2 sm:text-xs",
-          md: "p-2.5 text-sm",
-          lg: "p-4 sm:text-base",
-        },
-        colors: {
-          gray: "border-gray-300 bg-gray-50 text-gray-900 focus:border-[rgb(60,79,131)] focus:ring-[rgb(60,79,131)] dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-cyan-500 dark:focus:ring-cyan-500",
-          info: "border-cyan-500 bg-cyan-50 text-cyan-900 placeholder-cyan-700 focus:border-cyan-500 focus:ring-cyan-500 dark:border-cyan-400 dark:bg-cyan-100 dark:focus:border-cyan-500 dark:focus:ring-cyan-500",
-          failure:
-            "border-red-500 bg-red-50 text-red-900 placeholder-red-700 focus:border-red-500 focus:ring-red-500 dark:border-red-400 dark:bg-red-100 dark:focus:border-red-500 dark:focus:ring-red-500",
-          warning:
-            "border-yellow-500 bg-yellow-50 text-yellow-900 placeholder-yellow-700 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-400 dark:bg-yellow-100 dark:focus:border-yellow-500 dark:focus:ring-yellow-500",
-          success:
-            "border-green-500 bg-green-50 text-green-900 placeholder-green-700 focus:border-green-500 focus:ring-green-500 dark:border-green-400 dark:bg-green-100 dark:focus:border-green-500 dark:focus:ring-green-500",
-        },
-      },
-    },
-  };
-  const tagMapping = {
-    1: "Hostel",
-    2: "Mess",
-    3: "Department",
-    4: "Cleaning",
-    5: "Sports",
-    6: "Bus Services",
-    8: "Ragging",
-    9: "Gym",
-    10: "Library",
-    11: "Internet",
-    12: "Wi-Fi",
-    13: "LAN",
-    14: "Electricity",
-    15: "Equipment",
-    16: "Carpentry",
-    17: "Dispensary",
-    18: "Ambulance",
-    19: "Medical Services",
-    20: "Canteen",
-    21: "Labs",
-    22: "Personal Issue",
-    23: "Others",
   };
 
   const handleAccessChange = () => {
-    if (formData.tags.includes(8) || formData.tags.includes(22)) {
-      // Check if Ragging tag (id=8) is selected or Personal Issue (id=22)
+    const sensitiveTags = ["Ragging", "Personal Issue"];
+    const hasSensitiveTag = formData.tags.some(tagId => {
+      const tag = tagMapping.find(t => t.id === tagId);
+      return tag && sensitiveTags.includes(tag.tagName);
+    });
+
+    if (hasSensitiveTag) {
       setTooltipError(true);
-      setTimeout(() => setTooltipError(false), 3000); // Hide tooltip after 3 seconds
+      setTimeout(() => setTooltipError(false), 3000);
       return;
     }
+
     setFormData({
       ...formData,
       access: formData.access === "PRIVATE" ? "PUBLIC" : "PRIVATE",
     });
   };
-  const resetForm =()=>{
+  const resetForm = () => {
     setFormData({
       complaintId: complaint.complaintId,
       title: complaint.title,
       description: complaint.description,
       access: complaint.access,
       location: complaint.location,
-      tags: complaint.tags.map((tag: any) => tag.tags.id),
+      tags: complaint.tags.map(tag => tag.id),
       attachments: complaint.attachments.map(
         (attachment: any) => attachment.imageUrl
       ),
       postAsAnonymous: complaint.postAsAnonymous,
     });
     const [parent, child, block] = complaint.location.split("-");
-    setParentLocation(parent || "");
-    setChildLocation(child || "");
-    setBlockLocation(block || "");
     setError(null);
-  }
+  };
 
   const handleModalClose = () => {
     resetForm();
+    setFormData(null);
+    setError(null);
+    setFile([]);
+    setImageUploadProgress(null);
+    setImageUploadError(null);
     onClose();
-    handleEditLocation();
   };
-  if (!isOpen || !formData || loading) return null;
+  if (!isOpen || loading) return null;
+
+  if (!complaint || !formData) {
+    return (
+      <Modal show={isOpen} onClose={handleModalClose}>
+        <Modal.Header>Error</Modal.Header>
+        <Modal.Body>
+          <Alert color="failure">
+            Failed to load complaint data. Please try again.
+          </Alert>
+        </Modal.Body>
+      </Modal>
+    );
+  }
+  
   return (
     <div>
       <Modal show={isOpen} size="5xl" onClose={handleModalClose} popup>
@@ -418,160 +305,55 @@ const UpdateComplaintModal = ({
                 <Label htmlFor="location" value="Location:" />
               </div>
               <div className="flex justify-between gap-8">
-                {!isEditingLocation ? (
-                  <div className="flex mt-2">
-                    <Badge color="gray" className="float-right">{complaint.location}</Badge>{" "}
-                    <AiOutlineEdit onClick={handleEditLocation} />
-                  </div>
-                
-                ) : (
-                    <div className="flex-1">
-                      {/* Location - Parent */}
-                      <div className="mb-4">
-                        <Label
-                          htmlFor="parentLocation"
-                          value="Location Category"
-                        />
-                        <Select
-                          id="parentLocation"
-                          value={parentLocation}
-                          onChange={handleParentChange}
-                          required
-                          theme={customThemeSelect}
-                          color="gray"
-                        >
-                          <option value="">Select Category</option>
-                          {Object.keys(locationData).map((parent, index) => (
-                            <option key={index} value={parent}>
-                              {parent}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
-
-                      {/* Location - Child */}
-                      {parentLocation && parentLocation !== "Other" && (
-                        <div>
-                          <Label
-                            htmlFor="childLocation"
-                            value="Specific Location"
-                          />
-                          <Select
-                            id="childLocation"
-                            value={childLocation}
-                            onChange={handleChildChange}
-                            required
-                            theme={customThemeSelect}
-                          >
-                            <option value="">Select Specific Location</option>
-                            {Object.keys(locationData[parentLocation]).map(
-                              (child, index) => (
-                                <option key={index} value={child}>
-                                  {child}
-                                </option>
-                              )
-                            )}
-                          </Select>
-                        </div>
-                      )}
-                      {(parentLocation === "Hostel" ||
-                        parentLocation === "Department") &&
-                        childLocation &&
-                        locationData[parentLocation][childLocation] && (
-                          <div>
-                            <Label htmlFor="block" value="Block" />
-                            <Select
-                              id="block"
-                              onChange={handleBlockChange}
-                              required
-                              theme={customThemeSelect}
-                              value={blockLocation}
-                            >
-                              <option value="">Select Block</option>
-                              {locationData[parentLocation][childLocation].map(
-                                (block, index) => (
-                                  <option key={index} value={block}>
-                                    {block}
-                                  </option>
-                                )
-                              )}
-                            </Select>
-                          </div>
-                        )}
-                      {parentLocation === "Other" && (
-                        <div>
-                          <Label
-                            htmlFor="childLocation"
-                            value="Specific Location"
-                          />
-                          <Select
-                            id="childLocation"
-                            value={formData.location}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                location: e.target.value,
-                              })
-                            }
-                            required
-                          >
-                            <option value="">Select Specific Location</option>
-                            {locationData[parentLocation].map(
-                              (location, index) => (
-                                <option key={index} value={location}>
-                                  {location}
-                                </option>
-                              )
-                            )}
-                          </Select>
-                        </div>
-                      )}
-                    </div>
-                )}
+                <div className="flex mt-1 ml-2">
+                  <Badge color="gray" className="float-right">
+                    {complaint.location}
+                  </Badge>{" "}
+                </div>
 
                 {/* Right Side - Tags */}
                 <div className="flex-1">
-                      <Label htmlFor="tags" value="Tags" />
-                      <Select
-                        id="tags"
-                        value=""
-                        onChange={handleTagSelection}
-                        theme={customThemeSelect}
-                        color="gray"
+                  <Label htmlFor="tags" value="Tags" />
+                  <Select
+                    id="tags"
+                    value=""
+                    onChange={handleTagSelection}
+                    theme={customThemeSelect}
+                    color="gray"
+                  >
+                    <option value="">Select a Tag</option>
+                    {tagMapping.map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.tagName}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.tags && formData.tags.map((tagId) => (
+                      <span
+                        key={tagId}
+                        className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2 mb-2"
                       >
-                        <option value="">Select a Tag</option>
-                        {Object.entries(tagMapping).map(([id, name]) => (
-                          <option key={id} value={id}>
-                            {name}
-                          </option>
-                        ))}
-                      </Select>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.tags.map((tagId: number) => (
-                          <span
-                            key={tagId}
-                            className="inline-flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full mr-2 mb-2"
-                          >
-                            {tagMapping[tagId]}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  tags: formData.tags.filter(
-                                    (id: number) => id !== tagId
-                                  ),
-                                })
-                              }
-                              className="ml-2 text-blue-500 hover:text-blue-700"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    </div>
+                        {tagMapping.find((tag) => tag.id === tagId)?.tagName}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.filter(
+                                (id) => id !== tagId
+                              ),
+                            })
+                          }
+                          className="ml-2 text-blue-500 hover:text-blue-700"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <div className="flex gap-4 items-center justify-between border-4 border-[rgb(60,79,131)] border-dotted p-3">
                 <FileInput
                   type="file"
@@ -692,8 +474,9 @@ const UpdateComplaintModal = ({
               <Button
                 type="submit"
                 className="w-full mt-4 border border-transparent bg-[rgb(60,79,131)] text-white focus:ring-4 focus:ring-purple-300 enabled:hover:bg-[rgb(47,69,131)] dark:bg-purple-600 dark:focus:ring-purple-900 dark:enabled:hover:bg-purple-700"
+                disabled={submitting}
               >
-                Save Changes
+                {submitting ? "Submitting..." : "Save Changes"}
               </Button>
             </div>
           </form>

@@ -1,8 +1,6 @@
 import { FaChevronRight, FaSignOutAlt } from "react-icons/fa";
 import {
-  HiHome,
   HiChartPie,
-  HiClipboard,
   HiUsers,
   HiTag,
   HiLocationMarker,
@@ -11,6 +9,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signOutSuccess } from "../redux/user/userSlice";
+import { BsPersonLinesFill } from "react-icons/bs";
 
 const getInitials = (name: string) => {
   const nameParts = name.trim().split(" ");
@@ -30,7 +29,7 @@ const AdminSidebar = () => {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch("", { method: "POST" });
+      const res = await fetch("/api/v1/user/auth/signout", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         console.log(data.message);
@@ -50,11 +49,6 @@ const AdminSidebar = () => {
       path: "/admin/dashboard",
     },
     {
-      label: "Manage Complaints",
-      icon: <HiClipboard className="text-2xl" />,
-      path: "/admin/complaints",
-    },
-    {
       label: "Manage Users",
       icon: <HiUsers className="text-2xl" />,
       path: "/admin/users",
@@ -69,6 +63,11 @@ const AdminSidebar = () => {
       icon: <HiLocationMarker className="text-2xl" />,
       path: "/admin/locations",
     },
+    {
+      label: "Manage Professions",
+      icon: <BsPersonLinesFill className="text-2xl"/>,
+      path: "/admin/professions",
+    }
   ];
 
   return (

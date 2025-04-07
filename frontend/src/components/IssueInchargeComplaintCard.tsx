@@ -13,6 +13,11 @@ interface Attachment {
   imageUrl: string;
 }
 
+interface ComplaintDetails {
+  actionTaken: boolean;
+  upvotes: number;
+}
+
 interface User {
   userId: string;
   name: string;
@@ -27,38 +32,20 @@ interface Complaint {
   title: string;
   description: string;
   access: string;
-  complainerId: string;
-  complainerName: User;
+  userId: string;
+  user: User;
   createdAt: string;
   status: string;
   attachments: Attachment[];
-  actionTaken: boolean;
-  upvotes: number;
+  complaintDetails: ComplaintDetails;
   postAsAnonymous: boolean;
   tags: Tags[];
-  assignedTo: string;
-  inchargeId: string;
-  inchargeName: string;
-  inchargeEmail: string;
-  inchargePhone: string;
-  designation: string;
-  inchargeRank: number;
-  location: string;
-  assignedAt: Date;
-  expiter: Date;
 }
 
-interface ComplaintCardProps {
+interface IssueInchargeComplaintCardProps {
   complaint: Complaint;
   showProfile: boolean;
-  showUpvote: boolean;
-  showActions: boolean;
   showBadges: boolean;
-  showInchargeActions?: boolean;
-  handleUpvote?: (id: string) => void;
-  upvotedComplaints: string[];
-  onUpdate?: (id: string) => void;
-  onDelete?: (id: string) => void;
   onResolve?: (id: string) => void; //may change
   onDelegate?: (complaint: Complaint) => void; //may change
   onEscalate?: (id: string) => void; //may change
@@ -73,17 +60,10 @@ const getInitials = (name: string): string => {
   return initials.toUpperCase();
 };
 
-const ComplaintCard: React.FC<ComplaintCardProps> = ({
+const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
   complaint,
   showProfile,
-  showUpvote,
-  showActions,
   showBadges,
-  showInchargeActions = false,
-  handleUpvote,
-  upvotedComplaints,
-  onUpdate,
-  onDelete,
   onResolve,
   onDelegate,
   onEscalate,
@@ -91,21 +71,17 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const isUpvoted =
-    showUpvote && upvotedComplaints.includes(String(complaint.id));
-
   // Prepare images for the Lightbox
-  const slides =
-    complaint &&
-    complaint.attachments &&
-    complaint.attachments.length > 0 &&
-    complaint.attachments.map((attachment) => ({
-      src: attachment.imageUrl,
-    }));
+  const slides = complaint.attachments.map((attachment) => ({
+    src: attachment.imageUrl,
+  }));
 
-  const createdAtDisplay = moment(complaint.createdAt)
-    .tz("Europe/London")
-    .format("dddd, Do MMMM YYYY, h:mm A");
+  const createdAtDisplay = moment.utc(complaint.createdAt).calendar(null, {
+    sameDay: "[Today] h:mm A",
+    lastDay: "[Yesterday] h:mm A",
+    lastWeek: "dddd h:mm A",
+    sameElse: "DD/MM/YYYY h:mm A",
+  });
   return (
     <div
       className="border rounded-lg shadow-md bg-white flex flex-col"
@@ -187,7 +163,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
       {/* Complaint Details */}
       <div className="p-4">
         <Link
-          to={`/complaint/${complaint.id}`}
+          to={`/incharge/complaint/${complaint.id}`}
           className="text-lg font-semibold text-gray-800 hover:text-[rgb(60,79,131)]"
         >
           {complaint.title}
@@ -196,7 +172,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
           {complaint.description.length > 200 ? (
             <>
               {complaint.description.substring(0, 200)}...{" "}
-              <Link to={`/complaint/${complaint.id}`} className="text-blue-500">
+              <Link to={`/incharge/complaint/${complaint.id}`} className="text-blue-500">
                 read more
               </Link>
             </>
@@ -210,13 +186,6 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
               {tag}
             </Badge>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {complaint && complaint.location && (
-            <Badge color="warning" className="text-sm font-medium">
-              {complaint.location}
-            </Badge>
-          )}
         </div>
         {showBadges && (
           <div className="flex mt-2">
@@ -243,139 +212,63 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
           {complaint.status}
         </Badge>
 
-        {showUpvote && (
-          <div className="flex items-center">
-          <button
-            className={`text-xl ${
-              isUpvoted ? "text-blue-800" : "text-gray-600"
-            } hover:text-blue-800`}
-            onClick={() => {
-              handleUpvote(complaint.id);
-            }}
-          >
-            {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
-          </button>
-          <span className="ml-2 text-gray-600 text-sm">
-            {complaint.upvotes} upvotes
-          </span>
-        </div>
-        )}
-
-        {showActions && (
+        {
           <div className="flex items-center gap-2">
             <Tooltip
               content={
-                complaint.status === "ASSIGNED"
-                  ? "update complaint details"
-                  : "cannot update"
+                complaint.status !== "ASSIGNED"
+                  ? `cannot perform action as status is ${complaint.status}`
+                  : "resolve the complaint yourself"
               }
               arrow={false}
-              style="light"
+            >
+              <Button
+                color="blue"
+                onClick={() => onResolve?.(complaint.id)}
+                disabled={complaint.status !== "ASSIGNED"}
+              >
+                Resolve by Self
+              </Button>
+            </Tooltip>
+
+            <Tooltip
+              content={
+                complaint.status !== "ASSIGNED"
+                  ? `cannot perform action as status is ${complaint.status}`
+                  : "delegate to a resolver"
+              }
+              arrow={false}
             >
               <Button
                 color="light"
+                onClick={() => onDelegate?.(complaint)} 
                 disabled={complaint.status !== "ASSIGNED"}
-                onClick={() => onUpdate?.(complaint.id)}
               >
-                Update
+                Delegate
               </Button>
             </Tooltip>
+
             <Tooltip
               content={
-                complaint.status === "ASSIGNED"
-                  ? "delete complaint"
-                  : "cannot delete"
+                complaint.status !== "ASSIGNED"
+                  ? `cannot perform action as status is ${complaint.status}`
+                  : "escalate to higher authorities"
               }
               arrow={false}
-              style="light"
             >
               <Button
-                color="failure"
+                color="purple"
+                onClick={() => onEscalate?.(complaint.id)} //may change
                 disabled={complaint.status !== "ASSIGNED"}
-                onClick={() => onDelete && onDelete(complaint.id)}
               >
-                Delete
+                Escalate
               </Button>
             </Tooltip>
           </div>
-        )}
-        {showInchargeActions && (
-          <div className="flex items-center gap-2">
-            <Button
-              color="blue"
-              onClick={() => onResolve?.(complaint.id)} //may change
-            >
-              Resolve by Self
-            </Button>
-
-            <Button
-              color="light"
-              onClick={() => onDelegate?.(complaint)} //may change
-            >
-              Delegate
-            </Button>
-
-            <Button
-              color="purple"
-              onClick={() => onEscalate?.(complaint.id)} //may change
-            >
-              Escalate
-            </Button>
-          </div>
-        )}
+        }
       </div>
-      {!showInchargeActions && (
-        <p className="italic font-monospace font-thin antialiased pl-6 pb-2">
-          {complaint.status === "ASSIGNED" && (
-            <>
-              This complaint has been <strong>assigned</strong> to{" "}
-              <strong className="font-bold">{complaint.assignedTo}</strong> on{" "}
-              <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
-              </strong>
-              .
-            </>
-          )}
-          {/* {complaint.status === "RESOLVED" && (
-            <>
-              This complaint was <strong>resolved</strong> 
-              on{" "}
-              <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
-              </strong>
-              .
-            </>
-          )}
-          {complaint.status === "ESCALATED" && (
-            <>
-              This complaint was <strong>escalated</strong> on{" "}
-              <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
-              </strong>
-              .
-            </>
-          )}
-          {complaint.status === "DELEGATED" && (
-            <>
-              This complaint was <strong>delegated</strong> on{" "}
-              <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
-              </strong>
-              .
-            </>
-          )} */}
-        </p>
-      )}
     </div>
   );
 };
 
-export default ComplaintCard;
+export default IssueInchargeComplaintCard;

@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { signInFailure, signInStart, signInSuccess } from "../redux/user/userSlice";
+import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
 
 function SignIn() {
   const [formData, setFormData] = useState({
@@ -24,13 +25,11 @@ function SignIn() {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const {currentUser} = useSelector((state) => state.user);
-  
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
       return dispatch(signInFailure('Please fill all the fields'));
-    }
+    }  
 
     try {
       dispatch(signInStart());
@@ -48,7 +47,11 @@ function SignIn() {
       localStorage.setItem("token", data.token);
 
       if (data.ok === false) {
-        dispatch(signInFailure(data.error));
+        if (data.error && data.error.includes("prisma.user.findUnique")) {
+          return dispatch(signInFailure("Unauthorized: You cannot log in as this role"));
+        }
+        
+        return dispatch(signInFailure(data.error || "Sign-in failed"));
       }
       if (res.ok) {
         dispatch(signInSuccess(data));
@@ -111,6 +114,7 @@ function SignIn() {
                 required
                 className="mt-1  text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -123,6 +127,7 @@ function SignIn() {
                 placeholder="******"
                 className="mt-1  text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -133,6 +138,7 @@ function SignIn() {
                 className="mt-1  text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
                 value={formData.role}
+                theme={customThemeSelect}
               >
                 <option value="STUDENT">Student </option>
                 <option value="FACULTY">Faculty </option>

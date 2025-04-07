@@ -12,9 +12,16 @@ import IssueInchargeDashboard from './pages/IssueInchargeDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import Dashboard from './pages/Dashboard'
 import ManageComplaints from './pages/ManageComplaints'
-import ManageUsers from './pages/ManageUsers'
 import ManageTags from './pages/ManageTags'
 import ManageLocations from './pages/ManageLocations'
+import ManageAllUsers from './pages/ManageAllUsers'
+import Notifications from './pages/Notifications'
+import InchargeManageComplaints from './pages/InchargeManageComplaints'
+import InchargeComplaintPage from './pages/InchargeComplaintPage'
+import InchargeProfile from './pages/InchargeProfile'
+import InchargeNotifications from './pages/InchargeNotifications'
+import ManageProfessions from './pages/ManageProfessions'
+import NotFound from './pages/NotFound'
 
 function App() {
 
@@ -30,25 +37,31 @@ function App() {
           <Route path='/profile' element={<Profile/>}/>
           <Route path='/complaint/:complaintId' element={<ComplaintPage />}/>
           <Route path='/dashboard' element={<Dashboard/>}/>
+          <Route path='/notifications' element={<Notifications />}/>
         </Route>
 
         {/* Issue Incharge Routes */} 
         <Route element={<OnlyIssueInchargePrivateRoute />}>
-        <Route
-          path="/issue-incharge/dashboard"
-          element={<IssueInchargeDashboard />}
-        />
+          <Route
+            path="/incharge/dashboard"
+            element={<IssueInchargeDashboard />}
+          />
+          <Route path="/incharge/complaints" element={<InchargeManageComplaints />}/>
+          <Route path="/incharge/complaint/:complaintId" element={<InchargeComplaintPage />} />
+          <Route path="/incharge/profile" element={<InchargeProfile />} />
+          <Route path="/incharge/notifications" element={<InchargeNotifications />} />
         </Route>
 
         {/* Admin Routes */}
         <Route element={<OnlyAdminPrivateRoute />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/complaints" element={<ManageComplaints />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/users" element={<ManageAllUsers />} />
           <Route path="/admin/tags" element={<ManageTags />} />
           <Route path="/admin/locations" element={<ManageLocations />} />
+          <Route path="/admin/professions" element={<ManageProfessions />} />
         </Route>
-        <Route path="/not-authorized" element={<div>Not Authorized</div>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

@@ -8,6 +8,7 @@ import {
 } from "flowbite-react";
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { customThemeSelect, customThemeTi } from "../utils/flowbiteCustomThemes";
 
 function SignUp() {
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ function SignUp() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -128,6 +130,7 @@ function SignUp() {
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -141,6 +144,7 @@ function SignUp() {
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -154,6 +158,7 @@ function SignUp() {
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -167,6 +172,7 @@ function SignUp() {
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
             {/* Confirm Password Field */}
@@ -179,6 +185,7 @@ function SignUp() {
                 required
                 className="mt-1 text-gray-900 text-sm rounded-lg"
                 onChange={handleChange}
+                theme={customThemeTi}
               />
             </div>
 
@@ -189,6 +196,7 @@ function SignUp() {
                 className="mt-1  text-gray-900 text-sm rounded-lg mb-4"
                 onChange={handleChange}
                 value={formData.role}
+                theme={customThemeSelect}
               >
                 <option value="STUDENT">Student </option>
                 <option value="FACULTY">Faculty </option>

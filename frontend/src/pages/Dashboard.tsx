@@ -10,6 +10,8 @@ import { HiOutlineExclamationCircle } from "react-icons/hi2";
 import UpdateComplaintModal from "../components/UpdateComplaintModal";
 import ComplaintCard from "../components/ComplaintCard";
 import AdminSidebar from "../components/AdminSidebar";
+import ScrollToTop from "react-scroll-to-top";
+import { FaChevronUp } from "react-icons/fa";
 
 function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -20,26 +22,19 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [complaintIdToUpdate, setComplaintIdToUpdate] = useState('');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const statusColors: Record<string, string> = {
-    PENDING: "warning",
-    ASSIGNED: "indigo",
-    RESOLVED: "success",
-    NOT_RESOLVED: "failure",
-  };
 
   useEffect(() => {
     const fetchUserComplaints = async () => {
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/v1/complaint/user/${currentUser.id}`
+          `/api/v1/complaint/get/user-complaints`
         );
         const data = await response.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to fetch complaints.");
         }
-        setUserComplaints(data.complaints);
-        console.log(userComplaints);
+        setUserComplaints(data.complaintDetails);
       } catch (err) {
         console.error(err);
         setError("Failed to fetch complaints. Please try again later.");
@@ -93,6 +88,7 @@ function Dashboard() {
                 <h2 className="text-2xl font-semibold text-center">
                   Dashboard
                 </h2>
+                <ScrollToTop smooth component={<FaChevronUp />} className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg"/>
                 <div className="flex flex-col gap-4">
                   {userComplaints.map((complaint) => (
                     <ComplaintCard
