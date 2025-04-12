@@ -32,6 +32,8 @@ const NotFound = () => {
           Go to Homepage
         </button>
       </Link>
+      {/* <h1 className="text-gradient text-9xl font-bold">SamadhanX</h1>
+      <h3 className="text-3xl text-blue-400">{"(Next-Gen Grievance Management System)"}</h3> */}
     </div>
   );
 };

@@ -33,7 +33,7 @@ function InchargeComplaintPage() {
   const id = useParams().complaintId;
 
   const createdAtDisplay = moment(complaint && complaint.createdAt)
-    .tz("Europe/London")
+    
     .format("dddd, Do MMMM YYYY, h:mm A");
 
   useEffect(() => {
@@ -281,24 +281,34 @@ function InchargeComplaintPage() {
         <div className="flex items-center gap-2 self-center mt-5">
           <Tooltip
             content={
-              complaint && complaint.status !== "ASSIGNED"
+              complaint &&
+              complaint.status !== "DELEGATED" &&
+              complaint.status !== "ASSIGNED" &&
+              complaint.status !== "RECREATED"
                 ? `cannot perform action as status is ${complaint.status}`
-                : "resolve the complaint yourself"
+                : "resolve the complaint"
             }
             arrow={false}
           >
             <Button
               color="blue"
               onClick={() => handleResolve(complaint.id)}
-              disabled={complaint.status !== "ASSIGNED"}
+              disabled={
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
+              }
             >
-              Resolve by Self
+              Resolve
             </Button>
           </Tooltip>
 
           <Tooltip
             content={
-              complaint && complaint.status !== "ASSIGNED"
+              complaint &&
+              complaint.status !== "DELEGATED" &&
+              complaint.status !== "ASSIGNED" &&
+              complaint.status !== "RECREATED"
                 ? `cannot perform action as status is ${complaint.status}`
                 : "delegate to a resolver"
             }
@@ -309,7 +319,11 @@ function InchargeComplaintPage() {
               onClick={() => {
                 setDelegateModalOpen(true);
               }}
-              disabled={complaint.status !== "ASSIGNED"}
+              disabled={
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
+              }
             >
               Delegate
             </Button>
@@ -317,7 +331,10 @@ function InchargeComplaintPage() {
 
           <Tooltip
             content={
-              complaint && complaint.status !== "ASSIGNED"
+              complaint &&
+              complaint.status !== "DELEGATED" &&
+              complaint.status !== "ASSIGNED" &&
+              complaint.status !== "RECREATED"
                 ? `cannot perform action as status is ${complaint.status}`
                 : "escalate to higher authorities"
             }
@@ -326,7 +343,11 @@ function InchargeComplaintPage() {
             <Button
               color="purple"
               onClick={() => handleEscalate(complaint.id)} //may change
-              disabled={complaint.status !== "ASSIGNED"}
+              disabled={
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
+              }
             >
               Escalate
             </Button>

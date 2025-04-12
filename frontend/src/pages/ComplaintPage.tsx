@@ -20,6 +20,7 @@ import "yet-another-react-lightbox/styles.css";
 import ComplaintTimeline from "../components/ComplaintTimeline";
 import { motion } from "framer-motion";
 import { useComplaintWebSocket } from "../hooks/useComplaintWebSocket";
+import { formatDate } from "../utils/formatDate";
 
 
 function ComplaintPage() {
@@ -53,9 +54,7 @@ function ComplaintPage() {
           ...prev,
           status: "RESOLVED",
           resolver: message.data.resolverDetails,
-          resolvedAt: moment(message.data.resolvedAt)
-            .tz("Europe/London")
-            .format(),
+          resolvedAt: formatDate(message.data.resolvedAt),
         }));
         fetchComplaintHistory();
         break;
@@ -67,7 +66,12 @@ function ComplaintPage() {
           ...prev,
           status: "ESCALATED",
           assignedTo: message.data.inchargeName,
-          assignedAt: moment(message.data.escalatedAt || new Date()).tz("Europe/London").format(),
+          assignedAt: formatDate(
+            message.data.escalatedAt ||
+              new Date(
+                Date.now() + 5 * 60 * 60 * 1000 + 30 * 60 * 1000
+              ).toISOString()
+          ),
         }));
         fetchComplaintHistory();
         break;
@@ -188,7 +192,7 @@ function ComplaintPage() {
             timestamp: moment(
               entry[Object.keys(entry).find((k) => /At$/.test(k))]
             )
-              .tz("Europe/London")
+              
               .format("DD-MM-YYYY HH:mm:ss"),
             assignedTo:
               entry.assignedTo ||
@@ -201,7 +205,7 @@ function ComplaintPage() {
             location: data.location || "",
             expiry: entry.expiredAt
               ? moment(entry.expiredAt)
-                  .tz("Europe/London")
+                  
                   .format("DD-MM-YYYY HH:mm:ss")
               : null,
           };
@@ -229,9 +233,7 @@ function ComplaintPage() {
     );
   }
 
-  const createdAtDisplay = moment(complaint.createdAt)
-    .tz("Europe/London")
-    .format("dddd, Do MMMM YYYY, h:mm A");
+  const createdAtDisplay = formatDate(complaint.createdAt);
 
   return (
     <main className="p-3 flex flex-col max-w-6xl mx-auto min-h-screen">

@@ -172,7 +172,10 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
           {complaint.description.length > 200 ? (
             <>
               {complaint.description.substring(0, 200)}...{" "}
-              <Link to={`/incharge/complaint/${complaint.id}`} className="text-blue-500">
+              <Link
+                to={`/incharge/complaint/${complaint.id}`}
+                className="text-blue-500"
+              >
                 read more
               </Link>
             </>
@@ -216,24 +219,32 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
           <div className="flex items-center gap-2">
             <Tooltip
               content={
-                complaint.status !== "ASSIGNED"
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
                   ? `cannot perform action as status is ${complaint.status}`
-                  : "resolve the complaint yourself"
+                  : "resolve the complaint"
               }
               arrow={false}
             >
               <Button
                 color="blue"
                 onClick={() => onResolve?.(complaint.id)}
-                disabled={complaint.status !== "ASSIGNED"}
+                disabled={
+                  complaint.status !== "DELEGATED" &&
+                  complaint.status !== "ASSIGNED" &&
+                  complaint.status !== "RECREATED"
+                }
               >
-                Resolve by Self
+                Resolve
               </Button>
             </Tooltip>
 
             <Tooltip
               content={
-                complaint.status !== "ASSIGNED"
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
                   ? `cannot perform action as status is ${complaint.status}`
                   : "delegate to a resolver"
               }
@@ -241,8 +252,12 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
             >
               <Button
                 color="light"
-                onClick={() => onDelegate?.(complaint)} 
-                disabled={complaint.status !== "ASSIGNED"}
+                onClick={() => onDelegate?.(complaint)}
+                disabled={
+                  complaint.status !== "DELEGATED" &&
+                  complaint.status !== "ASSIGNED" &&
+                  complaint.status !== "RECREATED"
+                }
               >
                 Delegate
               </Button>
@@ -250,7 +265,9 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
 
             <Tooltip
               content={
-                complaint.status !== "ASSIGNED"
+                complaint.status !== "DELEGATED" &&
+                complaint.status !== "ASSIGNED" &&
+                complaint.status !== "RECREATED"
                   ? `cannot perform action as status is ${complaint.status}`
                   : "escalate to higher authorities"
               }
@@ -259,7 +276,11 @@ const IssueInchargeComplaintCard: React.FC<IssueInchargeComplaintCardProps> = ({
               <Button
                 color="purple"
                 onClick={() => onEscalate?.(complaint.id)} //may change
-                disabled={complaint.status !== "ASSIGNED"}
+                disabled={
+                  complaint.status !== "DELEGATED" &&
+                  complaint.status !== "ASSIGNED" &&
+                  complaint.status !== "RECREATED"
+                }
               >
                 Escalate
               </Button>

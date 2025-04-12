@@ -223,7 +223,7 @@ function SignUp() {
             {/* Already have an account */}
             <p className="text-center text-sm mt-4">
               Already have an account?{" "}
-              <Link to="/signin" className="text-blue-500">
+              <Link to="/sign-in" className="text-blue-500">
                 Sign In
               </Link>
             </p>

@@ -4,7 +4,7 @@ import useWebSocket from 'react-use-websocket';
 
 const WS_URL ='ws://localhost:3001'
 
-export const useComplaintWebSocket = (onComplaintUpdate) => {
+export const useComplaintWebSocket = (onComplaintUpdate: any) => {
     const {currentUser} = useSelector((state) => state.user);
     const { sendMessage, lastMessage, readyState } = useWebSocket(WS_URL, {
         shouldReconnect: () => true,

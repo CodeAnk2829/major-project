@@ -132,7 +132,7 @@ const Home = () => {
                   status: "DELEGATED",
                   assignedTo: message.data.delegateDetails?.name,
                   assignedAt:
-                    moment(message.data.delegatedAt || new Date()).tz("Europe/London").format(),
+                    moment(message.data.delegatedAt || new Date()).format(),
                 }
               : complaint
           )
@@ -146,7 +146,7 @@ const Home = () => {
                   status: "DELEGATED",
                   assignedTo: message.data.delegateDetails?.name,
                   assignedAt:
-                    moment(message.data.delegatedAt || new Date()).tz("Europe/London")
+                    moment(message.data.delegatedAt || new Date())
                     .format(),
                 }
               : complaint
@@ -161,7 +161,7 @@ const Home = () => {
               ...complaint,
               //status: "ESCALATED",
               assignedTo: message.data.inchargeName,
-              assignedAt: moment(message.data.escalatedAt || new Date()).tz("Europe/London").format(),
+              assignedAt: moment(message.data.escalatedAt || new Date()).format(),
             };
           }
           return complaint;

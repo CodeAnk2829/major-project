@@ -1,12 +1,12 @@
 import { Badge, Button, Tooltip } from "flowbite-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import moment from "moment-timezone";
 import { BiSolidUpvote, BiUpvote } from "react-icons/bi";
 import Lightbox from "yet-another-react-lightbox";
 import Inline from "yet-another-react-lightbox/plugins/inline";
 import "yet-another-react-lightbox/styles.css";
 import statusColors from "../utils/statusColors";
+import { formatDate } from "../utils/formatDate";
 
 interface Attachment {
   id: string;
@@ -44,8 +44,8 @@ interface Complaint {
   designation: string;
   inchargeRank: number;
   location: string;
-  assignedAt: Date;
-  expiter: Date;
+  assignedAt: string;
+  expireAt: string;
 }
 
 interface ComplaintCardProps {
@@ -103,9 +103,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
       src: attachment.imageUrl,
     }));
 
-  const createdAtDisplay = moment(complaint.createdAt)
-    .tz("Europe/London")
-    .format("dddd, Do MMMM YYYY, h:mm A");
+  const createdAtDisplay = formatDate(complaint.createdAt);
   return (
     <div
       className="border rounded-lg shadow-md bg-white flex flex-col"
@@ -245,20 +243,20 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
 
         {showUpvote && (
           <div className="flex items-center">
-          <button
-            className={`text-xl ${
-              isUpvoted ? "text-blue-800" : "text-gray-600"
-            } hover:text-blue-800`}
-            onClick={() => {
-              handleUpvote(complaint.id);
-            }}
-          >
-            {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
-          </button>
-          <span className="ml-2 text-gray-600 text-sm">
-            {complaint.upvotes} upvotes
-          </span>
-        </div>
+            <button
+              className={`text-xl ${
+                isUpvoted ? "text-blue-800" : "text-gray-600"
+              } hover:text-blue-800`}
+              onClick={() => {
+                handleUpvote(complaint.id);
+              }}
+            >
+              {isUpvoted ? <BiSolidUpvote /> : <BiUpvote />}
+            </button>
+            <span className="ml-2 text-gray-600 text-sm">
+              {complaint.upvotes} upvotes
+            </span>
+          </div>
         )}
 
         {showActions && (
@@ -331,21 +329,17 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
               This complaint has been <strong>assigned</strong> to{" "}
               <strong className="font-bold">{complaint.assignedTo}</strong> on{" "}
               <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
+                {formatDate(complaint.assignedAt)}
               </strong>
               .
             </>
           )}
-          {/* {complaint.status === "RESOLVED" && (
+          {complaint.status === "RESOLVED" && (
             <>
               This complaint was <strong>resolved</strong> 
               on{" "}
               <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
+                {formatDate(complaint.assignedAt)}
               </strong>
               .
             </>
@@ -354,9 +348,7 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
             <>
               This complaint was <strong>escalated</strong> on{" "}
               <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
+                {formatDate(complaint.assignedAt)}
               </strong>
               .
             </>
@@ -365,13 +357,11 @@ const ComplaintCard: React.FC<ComplaintCardProps> = ({
             <>
               This complaint was <strong>delegated</strong> on{" "}
               <strong className="font-bold">
-                {moment(complaint.assignedAt)
-                  .tz("Europe/London")
-                  .format("ddd, Do MMM YY, HH:mm")}
+                {formatDate(complaint.assignedAt)}
               </strong>
               .
             </>
-          )} */}
+          )}
         </p>
       )}
     </div>
